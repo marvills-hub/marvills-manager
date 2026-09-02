@@ -1,0 +1,258 @@
+<section class="tasks-page">
+  <div class="page-header">
+    <div>
+      <span class="eyebrow"> TASK MANAGEMENT </span>
+      <h1>Kanban Board</h1>
+      <p>Drag tasks between stages as your work progresses.</p>
+    </div>
+
+    <button class="primary-button" (click)="showForm = true">
+      <i class="fa-solid fa-plus"></i>
+      New Task
+    </button>
+  </div>
+
+  <div class="kanban-board">
+    <section class="kanban-column" data-status="todo">
+      <div class="column-header">
+        <div>
+          <span class="column-dot todo"></span>
+          <strong>To Do</strong>
+        </div>
+
+        <span>
+          {{ todo.length }}
+        </span>
+      </div>
+
+      <div class="task-drop-zone">
+        @for (task of todo; track task.id) {
+          <ng-container
+            *ngTemplateOutlet="
+              taskTemplate;
+              context: {
+                $implicit: task,
+              }
+            "
+          ></ng-container>
+        }
+      </div>
+    </section>
+
+    <section class="kanban-column" data-status="in-progress">
+      <div class="column-header">
+        <div>
+          <span class="column-dot progress"></span>
+          <strong>In Progress</strong>
+        </div>
+
+        <span>
+          {{ inProgress.length }}
+        </span>
+      </div>
+
+      <div class="task-drop-zone">
+        @for (task of inProgress; track task.id) {
+          <ng-container
+            *ngTemplateOutlet="
+              taskTemplate;
+              context: {
+                $implicit: task,
+              }
+            "
+          ></ng-container>
+        }
+      </div>
+    </section>
+
+    <section class="kanban-column" data-status="review">
+      <div class="column-header">
+        <div>
+          <span class="column-dot review"></span>
+          <strong>Review</strong>
+        </div>
+
+        <span>
+          {{ review.length }}
+        </span>
+      </div>
+
+      <div class="task-drop-zone">
+        @for (task of review; track task.id) {
+          <ng-container
+            *ngTemplateOutlet="
+              taskTemplate;
+              context: {
+                $implicit: task,
+              }
+            "
+          ></ng-container>
+        }
+      </div>
+    </section>
+
+    <section class="kanban-column" data-status="completed">
+      <div class="column-header">
+        <div>
+          <span class="column-dot completed"></span>
+          <strong>Completed</strong>
+        </div>
+
+        <span>
+          {{ completed.length }}
+        </span>
+      </div>
+
+      <div class="task-drop-zone">
+        @for (task of completed; track task.id) {
+          <ng-container
+            *ngTemplateOutlet="
+              taskTemplate;
+              context: {
+                $implicit: task,
+              }
+            "
+          ></ng-container>
+        }
+      </div>
+    </section>
+  </div>
+
+  <ng-template #taskTemplate let-task>
+    <article class="task-card" cdkDrag (cdkDragEnded)="dragEnded($event, task)">
+      <div class="task-card-top">
+        <span class="priority" [class]="task.priority">
+          {{ task.priority }}
+        </span>
+
+        <div class="task-actions">
+          <button type="button" (click)="editTask(task)">
+            <i class="fa-solid fa-pen"></i>
+          </button>
+
+          <button type="button" (click)="deleteTask(task)">
+            <i class="fa-regular fa-trash-can"></i>
+          </button>
+        </div>
+      </div>
+
+      <h3>
+        {{ task.title }}
+      </h3>
+
+      <p>
+        {{ task.description || 'No description' }}
+      </p>
+
+      <span class="project-name">
+        <i class="fa-regular fa-folder"></i>
+        {{ getProjectName(task.projectId) }}
+      </span>
+
+      <div class="task-footer">
+        <div class="assignee">
+          {{ task.assignee ? task.assignee.charAt(0).toUpperCase() : 'M' }}
+        </div>
+
+        @if (task.dueDate) {
+          <span>
+            <i class="fa-regular fa-calendar"></i>
+            {{ getTaskDueDate(task.dueDate) | date: 'MMM d' }}
+          </span>
+        }
+      </div>
+    </article>
+  </ng-template>
+
+  @if (showForm) {
+    <div class="drawer-overlay" (click)="showForm = false"></div>
+
+    <aside class="form-drawer">
+      <div class="drawer-header">
+        <div>
+          <span class="eyebrow"> TASK </span>
+
+          <h2>
+            {{ editingTask ? 'Edit Task' : 'Create Task' }}
+          </h2>
+        </div>
+
+        <button class="close-button" (click)="showForm = false">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form [formGroup]="taskForm" (ngSubmit)="saveTask()">
+        <div class="form-group">
+          <label>Task Title</label>
+
+          <input type="text" formControlName="title" />
+        </div>
+
+        <div class="form-group">
+          <label>Project</label>
+
+          <select formControlName="projectId">
+            <option value="">No project</option>
+
+            @for (project of projects; track project.id) {
+              <option [value]="project.id">
+                {{ project.name }}
+              </option>
+            }
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Description</label>
+
+          <textarea rows="4" formControlName="description"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Status</label>
+
+            <select formControlName="status">
+              <option value="todo">To Do</option>
+
+              <option value="in-progress">In Progress</option>
+
+              <option value="review">Review</option>
+
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Priority</label>
+
+            <select formControlName="priority">
+              <option value="low">Low</option>
+
+              <option value="medium">Medium</option>
+
+              <option value="high">High</option>
+
+              <option value="urgent">Urgent</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Due Date</label>
+
+          <input type="date" formControlName="dueDate" />
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="secondary-button" (click)="showForm = false">Cancel</button>
+
+          <button type="submit" class="primary-button">
+            {{ editingTask ? 'Save Changes' : 'Create Task' }}
+          </button>
+        </div>
+      </form>
+    </aside>
+  }
+</section>

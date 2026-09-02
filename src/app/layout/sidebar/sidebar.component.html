@@ -1,0 +1,70 @@
+<aside class="sidebar">
+  <div class="brand">
+    <img
+      src="assets/icons/marvills-manager-logo-v2.png"
+      alt="Marvills Manager Logo"
+      class="brand-icon"
+    />
+    <div class="brand-text">
+      <strong> MARVILLS </strong>
+      <span> MANAGER </span>
+    </div>
+  </div>
+
+  <div class="menu-label">WORKSPACE</div>
+
+  <nav class="nav-menu">
+    <a routerLink="/dashboard" routerLinkActive="active">
+      <i class="fa-solid fa-house"></i>
+      <span>Dashboard</span>
+    </a>
+
+    <a routerLink="/projects" routerLinkActive="active">
+      <i class="fa-regular fa-folder"></i>
+      <span>Projects</span>
+    </a>
+
+    <a routerLink="/tasks" routerLinkActive="active">
+      <i class="fa-regular fa-square-check"></i>
+      <span>Tasks</span>
+    </a>
+
+    <a routerLink="/clients" routerLinkActive="active">
+      <i class="fa-regular fa-user"></i>
+      <span>Clients</span>
+    </a>
+  </nav>
+
+  <div class="menu-label">TOOLS</div>
+
+  <nav class="nav-menu coming-soon">
+    <a>
+      <i class="fa-regular fa-calendar"></i>
+      <span>Calendar</span>
+      <small>Soon</small>
+    </a>
+
+    <a>
+      <i class="fa-regular fa-clock"></i>
+      <span>Time Tracking</span>
+      <small>Soon</small>
+    </a>
+
+    <a>
+      <i class="fa-solid fa-chart-line"></i>
+      <span>Reports</span>
+      <small>Soon</small>
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="avatar">MV</div>
+    <div>
+      <strong> Marvills </strong>
+      <span> Project Manager </span>
+    </div>
+    <button class="logout-button" type="button" (click)="logout()" title="Logout">
+      <i class="fa-solid fa-arrow-right-from-bracket"></i>
+    </button>
+  </div>
+</aside>

@@ -1,0 +1,222 @@
+<section class="project-details">
+  @if (loading) {
+    <div class="loading-state">
+      <i class="fa-solid fa-spinner fa-spin"></i>
+
+      Loading project...
+    </div>
+  }
+
+  @if (!loading && project) {
+    <div class="page-header">
+      <div class="header-left">
+        <a routerLink="/projects" class="back-button">
+          <i class="fa-solid fa-arrow-left"></i>
+        </a>
+
+        <div>
+          <span class="eyebrow"> PROJECT WORKSPACE </span>
+
+          <h1>
+            {{ project.name }}
+          </h1>
+
+          <p>
+            {{ project.clientName || 'Personal Project' }}
+          </p>
+        </div>
+      </div>
+
+      <div class="project-status" [class]="project.status">
+        {{ project.status }}
+      </div>
+    </div>
+
+    <div class="project-tabs">
+      <button [class.active]="activeTab === 'overview'" (click)="activeTab = 'overview'">
+        Overview
+      </button>
+
+      <button [class.active]="activeTab === 'tasks'" (click)="activeTab = 'tasks'">
+        Tasks
+
+        <span>
+          {{ tasks.length }}
+        </span>
+      </button>
+    </div>
+
+    @if (activeTab === 'overview') {
+      <div class="stats-grid">
+        <article class="stat-card">
+          <span> Project Progress </span>
+
+          <strong> {{ project.progress }}% </strong>
+
+          <div class="progress-track">
+            <div class="progress-value" [style.width.%]="project.progress"></div>
+          </div>
+        </article>
+
+        <article class="stat-card">
+          <span> Total Tasks </span>
+
+          <strong>
+            {{ tasks.length }}
+          </strong>
+
+          <small> Assigned to project </small>
+        </article>
+
+        <article class="stat-card">
+          <span> Completed </span>
+
+          <strong>
+            {{ completedTasks }}
+          </strong>
+
+          <small> {{ taskProgress }}% of tasks </small>
+        </article>
+
+        <article class="stat-card">
+          <span> In Progress </span>
+
+          <strong>
+            {{ inProgressTasks }}
+          </strong>
+
+          <small> Currently active </small>
+        </article>
+      </div>
+
+      <div class="details-grid">
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Project Information</h2>
+          </div>
+
+          <div class="info-list">
+            <div>
+              <span> Client </span>
+
+              <strong>
+                {{ project.clientName || 'Personal Project' }}
+              </strong>
+            </div>
+
+            <div>
+              <span> Status </span>
+
+              <strong>
+                {{ project.status }}
+              </strong>
+            </div>
+
+            <div>
+              <span> Priority </span>
+
+              <strong [class]="project.priority">
+                {{ project.priority }}
+              </strong>
+            </div>
+
+            <div>
+              <span> Start Date </span>
+
+              <strong>
+                @if (project.startDate) {
+                  {{ project.startDate | date: 'MMM d, y' }}
+                } @else {
+                  Not specified
+                }
+              </strong>
+            </div>
+
+            <div>
+              <span> Deadline </span>
+
+              <strong>
+                @if (project.dueDate) {
+                  {{ project.dueDate | date: 'MMM d, y' }}
+                } @else {
+                  No deadline
+                }
+              </strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Description</h2>
+          </div>
+
+          <p class="description">
+            {{ project.description || 'No description has been added to this project.' }}
+          </p>
+        </section>
+      </div>
+    }
+
+    @if (activeTab === 'tasks') {
+      <div class="tasks-panel">
+        <div class="tasks-header">
+          <div>
+            <h2>Project Tasks</h2>
+
+            <p>
+              Tasks belonging to
+              {{ project.name }}.
+            </p>
+          </div>
+
+          <a routerLink="/tasks" class="primary-button"> Open Kanban </a>
+        </div>
+
+        <div class="task-list">
+          @for (task of tasks; track task.id) {
+            <article class="task-row">
+              <div class="task-check" [class.completed]="task.status === 'completed'">
+                @if (task.status === 'completed') {
+                  <i class="fa-solid fa-check"></i>
+                }
+              </div>
+
+              <div class="task-info">
+                <strong>
+                  {{ task.title }}
+                </strong>
+
+                <span>
+                  {{ task.status }}
+                </span>
+              </div>
+
+              <span class="priority" [class]="task.priority">
+                {{ task.priority }}
+              </span>
+
+              @if (task.dueDate) {
+                <span class="due-date">
+                  <i class="fa-regular fa-calendar"></i>
+
+                  {{ task.dueDate | date: 'MMM d' }}
+                </span>
+              }
+            </article>
+          }
+
+          @if (tasks.length === 0) {
+            <div class="empty-state">
+              <i class="fa-regular fa-square-check"></i>
+
+              <strong> No tasks yet </strong>
+
+              <p>Add tasks from your Kanban board.</p>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  }
+</section>

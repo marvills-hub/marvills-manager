@@ -1,0 +1,13 @@
+@if (toastService.toast(); as toast) {
+  <div class="toast" [class]="toast.type">
+    @if (toast.type === 'success') {
+      <i class="fa-solid fa-circle-check"></i>
+    }
+
+    @if (toast.type === 'error') {
+      <i class="fa-solid fa-circle-exclamation"></i>
+    }
+
+    {{ toast.message }}
+  </div>
+}

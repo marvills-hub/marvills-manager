@@ -1,0 +1,33 @@
+.toast {
+  position: fixed;
+  top: 85px;
+  right: 20px;
+  z-index: 1000;
+  min-width: 260px;
+  padding: 13px 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--text-primary);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  font-size: 9px;
+}
+
+.toast.success {
+  border-color: rgba(50, 200, 130, 0.3);
+}
+
+.toast.success i {
+  color: var(--success);
+}
+
+.toast.error {
+  border-color: rgba(255, 80, 90, 0.3);
+}
+
+.toast.error i {
+  color: var(--danger);
+}

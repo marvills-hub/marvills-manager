@@ -1,0 +1,66 @@
+<section class="login-page">
+  <div class="login-glow glow-one"></div>
+  <div class="login-glow glow-two"></div>
+
+  <div class="login-card">
+    <div class="brand">
+      <div class="brand-icon">M</div>
+
+      <div>
+        <strong> MARVILLS </strong>
+
+        <span> MANAGER </span>
+      </div>
+    </div>
+
+    <div class="login-heading">
+      <span class="eyebrow"> PRIVATE WORKSPACE </span>
+
+      <h1>Welcome Back</h1>
+
+      <p>Sign in to manage your projects, clients, and tasks.</p>
+    </div>
+
+    <form [formGroup]="loginForm" (ngSubmit)="login()">
+      <div class="form-group">
+        <label> Email </label>
+
+        <div class="input-wrapper">
+          <i class="fa-regular fa-envelope"></i>
+
+          <input type="email" formControlName="email" placeholder="you@email.com" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label> Password </label>
+
+        <div class="input-wrapper">
+          <i class="fa-solid fa-lock"></i>
+
+          <input type="password" formControlName="password" placeholder="Your password" />
+        </div>
+      </div>
+
+      @if (errorMessage) {
+        <div class="error-message">
+          <i class="fa-solid fa-circle-exclamation"></i>
+
+          {{ errorMessage }}
+        </div>
+      }
+
+      <button class="login-button" type="submit" [disabled]="loading">
+        @if (loading) {
+          <i class="fa-solid fa-spinner fa-spin"></i>
+
+          Signing In...
+        } @else {
+          Sign In
+
+          <i class="fa-solid fa-arrow-right"></i>
+        }
+      </button>
+    </form>
+  </div>
+</section>

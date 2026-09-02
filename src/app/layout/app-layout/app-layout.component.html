@@ -1,0 +1,40 @@
+<!-- <div class="app-layout">
+  <app-sidebar></app-sidebar>
+
+  <div class="main-wrapper">
+    <app-topbar></app-topbar>
+
+    <main class="page-content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div> -->
+
+<div class="app-layout">
+  <app-sidebar [class.mobile-open]="sidebarOpen"></app-sidebar>
+
+  @if (sidebarOpen) {
+    <div class="mobile-overlay" (click)="closeSidebar()"></div>
+  }
+
+  <div class="main-wrapper">
+    <app-topbar (menuToggle)="toggleSidebar()"></app-topbar>
+
+    <main class="page-content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+  <app-toast></app-toast>
+  <footer class="app-footer">
+    <div class="footer-content">
+      <span>
+        Designed & Developed by
+        <a href="https://marvills.dev" target="_blank" rel="noopener noreferrer"> MARVILLS </a>
+      </span>
+
+      <span class="footer-divider"></span>
+
+      <span class="copyright"> @ {{ currentYear }} MARVILLS MANAGER </span>
+    </div>
+  </footer>
+</div>

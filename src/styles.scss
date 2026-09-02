@@ -1,1 +1,109 @@
+// Include theming for Angular Material with `mat.theme()`.
+// This Sass mixin will define CSS variables that are used for styling Angular Material
+// components according to the Material 3 design spec.
+// Learn more about theming and how to use it for your application's
+// custom components at https://material.angular.dev/guide/theming
+@use '@angular/material' as mat;
+@import '@fortawesome/fontawesome-free/css/all.min.css';
+
+html {
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$azure-palette,
+        tertiary: mat.$blue-palette,
+      ),
+      typography: Roboto,
+      density: 0,
+    )
+  );
+}
+
+body {
+  // Default the application to a light color theme. This can be changed to
+  // `dark` to enable the dark color theme, or to `light dark` to defer to the
+  // user's system settings.
+  color-scheme: light;
+
+  // Set a default background, font and text colors for the application using
+  // Angular Material's system-level CSS variables. Learn more about these
+  // variables at https://material.angular.dev/guide/system-variables
+  background-color: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-medium);
+
+  // Reset the user agent margin.
+  margin: 0;
+}
 /* You can add global styles to this file, and also import other style files */
+
+html,
+body {
+  height: 100%;
+}
+body {
+  margin: 0;
+  font-family: Roboto, 'Helvetica Neue', sans-serif;
+}
+
+:root {
+  --primary: #5975ff;
+  --primary-hover: #7089ff;
+  --primary-soft: rgba(89, 117, 255, 0.12);
+  --success: #35c984;
+  --warning: #f3a83b;
+  --danger: #ff5964;
+  --transition: 0.25s ease;
+}
+
+[data-theme='dark'] {
+  --body-bg: #070d18;
+  --sidebar-bg: #080f1d;
+  --surface: #0e1726;
+  --surface-2: #121d2f;
+  --surface-hover: #18243a;
+  --border: rgba(150, 170, 210, 0.12);
+  --text-primary: #f6f8ff;
+  --text-secondary: #9ba7bd;
+  --text-muted: #69758b;
+  --shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme='light'] {
+  --body-bg: #f4f6fb;
+  --sidebar-bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f7f9fd;
+  --surface-hover: #eef2fa;
+  --border: rgba(30, 50, 90, 0.1);
+  --text-primary: #172033;
+  --text-secondary: #647089;
+  --text-muted: #8d98aa;
+  --shadow: 0 18px 40px rgba(27, 40, 70, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--body-bg);
+  color: var(--text-primary);
+  font-family: 'Inter', 'Poppins', Arial, sans-serif;
+  transition:
+    background var(--transition),
+    color var(--transition);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}

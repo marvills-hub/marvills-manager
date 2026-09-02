@@ -1,0 +1,124 @@
+<section>
+  <div class="page-header">
+    <div>
+      <span class="eyebrow"> CONTACTS </span>
+
+      <h1>Clients</h1>
+
+      <p>Manage the people and companies you work with.</p>
+    </div>
+
+    <!-- <button class="primary-button" (click)="showForm = true">
+      <i class="fa-solid fa-plus"></i>
+
+      New Client
+    </button> -->
+
+    <button class="primary-button" (click)="openCreateClient()">
+      <i class="fa-solid fa-plus"></i>
+
+      New Client
+    </button>
+  </div>
+
+  <div class="clients-grid">
+    @for (client of clients; track client.id) {
+      <article class="client-card">
+        <div class="client-top">
+          <div class="client-avatar">
+            {{ client.name.charAt(0).toUpperCase() }}
+          </div>
+
+          <!-- <button (click)="removeClient(client)">
+            <i class="fa-regular fa-trash-can"></i>
+          </button> -->
+          <div class="client-actions">
+            <button (click)="editClient(client)">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+
+            <button (click)="removeClient(client)">
+              <i class="fa-regular fa-trash-can"></i>
+            </button>
+          </div>
+        </div>
+
+        <h3>
+          {{ client.name }}
+        </h3>
+
+        <span>
+          {{ client.company || 'Independent Client' }}
+        </span>
+
+        <div class="contact-info">
+          @if (client.email) {
+            <div>
+              <i class="fa-regular fa-envelope"></i>
+
+              {{ client.email }}
+            </div>
+          }
+
+          @if (client.phone) {
+            <div>
+              <i class="fa-solid fa-phone"></i>
+
+              {{ client.phone }}
+            </div>
+          }
+        </div>
+      </article>
+    }
+  </div>
+
+  @if (showForm) {
+    <div class="modal-overlay">
+      <div class="modal">
+        <div class="modal-header">
+          <div>
+            <span class="eyebrow"> CLIENT </span>
+            <h2>
+              {{ editingClient ? 'Edit Client' : 'New Client' }}
+            </h2>
+          </div>
+
+          <button (click)="showForm = false">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <form [formGroup]="clientForm" (ngSubmit)="saveClient()">
+          <div class="form-group">
+            <label>Name</label>
+
+            <input type="text" formControlName="name" />
+          </div>
+
+          <div class="form-group">
+            <label> Company </label>
+
+            <input type="text" formControlName="company" />
+          </div>
+
+          <div class="form-group">
+            <label>Email</label>
+
+            <input type="email" formControlName="email" />
+          </div>
+
+          <div class="form-group">
+            <label>Phone</label>
+
+            <input type="text" formControlName="phone" />
+          </div>
+
+          <!-- <button class="primary-button" type="submit">Add Client</button> -->
+          <button class="primary-button" type="submit">
+            {{ editingClient ? 'Save Changes' : 'Add Client' }}
+          </button>
+        </form>
+      </div>
+    </div>
+  }
+</section>

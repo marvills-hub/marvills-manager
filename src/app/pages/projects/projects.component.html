@@ -1,0 +1,202 @@
+<section class="projects-page">
+  <div class="page-header">
+    <div>
+      <span class="eyebrow"> WORKSPACE </span>
+
+      <h1>Projects</h1>
+
+      <p>Manage all your active and upcoming projects.</p>
+    </div>
+
+    <button class="primary-button" type="button" (click)="openCreateForm()">
+      <i class="fa-solid fa-plus"></i>
+
+      New Project
+    </button>
+  </div>
+
+  <div class="projects-grid">
+    @for (project of filteredProjects; track project.id) {
+      <article class="project-card">
+        <div class="project-card-header">
+          <div class="project-icon">
+            <i class="fa-regular fa-folder"></i>
+          </div>
+
+          <div class="card-actions">
+            <button (click)="editProject(project)">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+
+            <button (click)="removeProject(project)">
+              <i class="fa-regular fa-trash-can"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="project-content">
+          <span class="status" [class]="project.status">
+            {{ project.status }}
+          </span>
+
+          <h3>
+            {{ project.name }}
+          </h3>
+
+          <span class="client-name">
+            {{ project.clientName || 'Personal Project' }}
+          </span>
+
+          <p>
+            {{ project.description || 'No project description.' }}
+          </p>
+        </div>
+
+        <div class="project-progress">
+          <div class="progress-header">
+            <span> Progress </span>
+
+            <strong> {{ project.progress }}% </strong>
+          </div>
+
+          <div class="progress-track">
+            <div class="progress-value" [style.width.%]="project.progress"></div>
+          </div>
+        </div>
+
+        <div class="project-footer">
+          <span class="priority" [class]="project.priority">
+            {{ project.priority }}
+          </span>
+
+          @if (project.dueDate) {
+            <span>
+              <i class="fa-regular fa-calendar"></i>
+
+              {{ project.dueDate | date: 'MMM d' }}
+            </span>
+          }
+        </div>
+        <a class="open-project" [routerLink]="['/projects', project.id]">
+          Open Project
+
+          <i class="fa-solid fa-arrow-right"></i>
+        </a>
+      </article>
+    }
+
+    @if (projects.length === 0) {
+      <div class="empty-projects">
+        <i class="fa-regular fa-folder-open"></i>
+
+        <h3>No projects yet</h3>
+
+        <p>Create your first project and start managing your work.</p>
+
+        <button class="primary-button" (click)="openCreateForm()">Create Project</button>
+      </div>
+    }
+  </div>
+
+  @if (showForm) {
+    <div class="drawer-overlay" (click)="closeForm()"></div>
+
+    <aside class="form-drawer">
+      <div class="drawer-header">
+        <div>
+          <span class="eyebrow"> PROJECT </span>
+
+          <h2>
+            {{ editingProject ? 'Edit Project' : 'New Project' }}
+          </h2>
+        </div>
+
+        <button class="close-button" (click)="closeForm()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form [formGroup]="projectForm" (ngSubmit)="saveProject()">
+        <div class="form-group">
+          <label> Project Name </label>
+
+          <input type="text" formControlName="name" placeholder="Website redesign" />
+        </div>
+
+        <div class="form-group">
+          <label> Client </label>
+
+          <input type="text" formControlName="clientName" placeholder="Client name" />
+        </div>
+
+        <div class="form-group">
+          <label> Description </label>
+
+          <textarea
+            rows="4"
+            formControlName="description"
+            placeholder="Project description..."
+          ></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Status</label>
+
+            <select formControlName="status">
+              <option value="planning">Planning</option>
+
+              <option value="active">Active</option>
+
+              <option value="on-hold">On Hold</option>
+
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label> Priority </label>
+
+            <select formControlName="priority">
+              <option value="low">Low</option>
+
+              <option value="medium">Medium</option>
+
+              <option value="high">High</option>
+
+              <option value="urgent">Urgent</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label> Progress </label>
+
+          <input type="number" min="0" max="100" formControlName="progress" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label> Start Date </label>
+
+            <input type="date" formControlName="startDate" />
+          </div>
+
+          <div class="form-group">
+            <label> Due Date </label>
+
+            <input type="date" formControlName="dueDate" />
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="secondary-button" (click)="closeForm()">Cancel</button>
+
+          <button class="primary-button" type="submit">
+            {{ editingProject ? 'Save Changes' : 'Create Project' }}
+          </button>
+        </div>
+      </form>
+    </aside>
+  }
+</section>

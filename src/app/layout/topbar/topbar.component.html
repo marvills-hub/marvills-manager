@@ -1,0 +1,38 @@
+<header class="topbar">
+  <button class="mobile-menu-button" type="button" (click)="menuToggle.emit()">
+    <i class="fa-solid fa-bars"></i>
+  </button>
+  <div class="search-box">
+    <i class="fa-solid fa-magnifying-glass"></i>
+
+    <input type="text" placeholder="Search projects or tasks..." />
+
+    <span class="shortcut"> Ctrl K </span>
+  </div>
+
+  <div class="topbar-actions">
+    <button class="action-button" type="button" (click)="themeService.toggleTheme()">
+      @if (themeService.theme() === 'dark') {
+        <i class="fa-regular fa-sun"></i>
+      } @else {
+        <i class="fa-regular fa-moon"></i>
+      }
+    </button>
+
+    <button class="action-button notification" type="button">
+      <i class="fa-regular fa-bell"></i>
+
+      <span></span>
+    </button>
+
+    <div class="user">
+      <div class="user-avatar">MV</div>
+
+      <div>
+        <strong> Marvills </strong>
+
+        <span> Project Manager </span>
+      </div>
+    </div>
+  </div>
+</header>

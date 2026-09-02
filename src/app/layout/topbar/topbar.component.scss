@@ -1,0 +1,145 @@
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 80;
+  min-height: 70px;
+  padding: 12px 25px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--body-bg);
+}
+
+.search-box {
+  width: min(460px, 45vw);
+  min-height: 41px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+}
+
+.search-box i {
+  color: var(--text-muted);
+}
+
+.search-box input {
+  width: 100%;
+  border: 0;
+  outline: none;
+  color: var(--text-primary);
+  background: transparent;
+  font-size: 11px;
+}
+
+.search-box input::placeholder {
+  color: var(--text-muted);
+}
+
+.shortcut {
+  flex-shrink: 0;
+  padding: 4px 6px;
+  border-radius: 5px;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  font-size: 8px;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.action-button {
+  position: relative;
+  width: 39px;
+  height: 39px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  background: var(--surface);
+}
+
+.action-button:hover {
+  color: var(--primary);
+}
+
+.notification span {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--danger);
+}
+
+.user {
+  margin-left: 5px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.user-avatar {
+  width: 37px;
+  height: 37px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #ffffff;
+  background: linear-gradient(135deg, #5278ff, #8858ec);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.user strong,
+.user span {
+  display: block;
+}
+
+.user strong {
+  color: var(--text-primary);
+  font-size: 11px;
+}
+
+.user span {
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-size: 8px;
+}
+
+@media (max-width: 650px) {
+  .shortcut,
+  .user > div:last-child {
+    display: none;
+  }
+
+  .search-box {
+    width: 100%;
+  }
+}
+
+.mobile-menu-button {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .mobile-menu-button {
+    width: 39px;
+    height: 39px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    background: var(--surface);
+  }
+}
