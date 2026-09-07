@@ -4,6 +4,7 @@ export type TaskStatus = 'todo' | 'in-progress' | 'review' | 'completed';
 
 export interface ProjectTask {
   id?: string;
+  workspaceId: string;
   projectId?: string;
   title: string;
   description?: string;
@@ -11,6 +12,6 @@ export interface ProjectTask {
   priority: Priority;
   assignee?: string;
   dueDate?: Date;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: any;
+  updatedAt?: any;
 }

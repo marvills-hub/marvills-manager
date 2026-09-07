@@ -7,6 +7,7 @@ export const routes: Routes = [
     path: 'login',
     loadComponent: () => import('./pages/login/login.component').then((m) => m.LoginComponent),
   },
+
   {
     path: '',
     component: AppLayoutComponent,
@@ -42,6 +43,21 @@ export const routes: Routes = [
         path: 'clients',
         loadComponent: () =>
           import('./pages/clients/clients.component').then((m) => m.ClientsComponent),
+      },
+      {
+        path: 'workspaces',
+        loadComponent: () =>
+          import('./pages/workspaces/workspaces.component').then((m) => m.WorkspacesComponent),
+      },
+      {
+        path: 'members',
+        loadComponent: () =>
+          import('./pages/members/members.component').then((m) => m.MembersComponent),
+      },
+      {
+        path: 'invitations',
+        loadComponent: () =>
+          import('./pages/invitations/invitations.component').then((m) => m.InvitationsComponent),
       },
     ],
   },

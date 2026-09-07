@@ -6,38 +6,73 @@ import {
   deleteDoc,
   doc,
   Firestore,
+  query,
   serverTimestamp,
   updateDoc,
+  where,
 } from '@angular/fire/firestore';
-import { Observable } from 'rxjs';
+import { Observable, of, switchMap } from 'rxjs';
 import { Client } from '../models/client.model';
+import { WorkspaceService } from './workspace.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ClientService {
   private firestore = inject(Firestore);
-
-  private clientsRef = collection(this.firestore, 'clients');
+  private workspaceService = inject(WorkspaceService);
 
   getClients(): Observable<Client[]> {
-    return collectionData(this.clientsRef, {
-      idField: 'id',
-    }) as Observable<Client[]>;
+    return this.workspaceService.currentWorkspace$.pipe(
+      switchMap((workspace) => {
+        if (!workspace?.id) {
+          return of([]);
+        }
+
+        const clientsRef = collection(this.firestore, 'clients');
+
+        const clientsQuery = query(clientsRef, where('workspaceId', '==', workspace.id));
+
+        return collectionData(clientsQuery, {
+          idField: 'id',
+        }) as Observable<Client[]>;
+      }),
+    );
   }
 
-  createClient(client: Client) {
-    return addDoc(this.clientsRef, {
-      ...client,
+  createClient(client: Omit<Client, 'workspaceId'>) {
+    const workspace = this.workspaceService.currentWorkspace();
+
+    if (!workspace?.id) {
+      throw new Error('No workspace selected.');
+    }
+
+    const clientsRef = collection(this.firestore, 'clients');
+
+    const cleanClient = Object.fromEntries(
+      Object.entries(client).filter(([, value]) => value !== undefined),
+    );
+
+    return addDoc(clientsRef, {
+      ...cleanClient,
+      workspaceId: workspace.id,
       createdAt: serverTimestamp(),
     });
   }
 
   updateClient(id: string, client: Partial<Client>) {
-    return updateDoc(doc(this.firestore, `clients/${id}`), client);
+    const cleanClient = Object.fromEntries(
+      Object.entries(client).filter(([, value]) => value !== undefined),
+    );
+
+    const clientRef = doc(this.firestore, `clients/${id}`);
+
+    return updateDoc(clientRef, cleanClient);
   }
 
   deleteClient(id: string) {
-    return deleteDoc(doc(this.firestore, `clients/${id}`));
+    const clientRef = doc(this.firestore, `clients/${id}`);
+
+    return deleteDoc(clientRef);
   }
 }

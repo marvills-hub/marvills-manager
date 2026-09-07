@@ -1,0 +1,125 @@
+<section class="workspaces-page">
+  <div class="page-header">
+    <div>
+      <span class="eyebrow"> WORKSPACE MANAGEMENT </span>
+
+      <h1>Workspaces</h1>
+
+      <p>Organize your projects and teams into separate workspaces.</p>
+    </div>
+
+    <button class="primary-button" type="button" (click)="openCreateForm()">
+      <i class="fa-solid fa-plus"></i>
+      New Workspace
+    </button>
+  </div>
+
+  <div class="workspace-grid">
+    @for (workspace of workspaces; track workspace.id) {
+      <article
+        class="workspace-card"
+        [class.selected]="workspaceService.currentWorkspace()?.id === workspace.id"
+        (click)="selectWorkspace(workspace)"
+      >
+        <div class="workspace-top">
+          <div class="workspace-icon">
+            {{ workspace.name.charAt(0).toUpperCase() }}
+          </div>
+
+          @if (workspaceService.currentWorkspace()?.id === workspace.id) {
+            <span class="current-badge"> Current </span>
+          }
+        </div>
+
+        <h2>
+          {{ workspace.name }}
+        </h2>
+
+        <p>
+          {{ workspace.description || 'No description' }}
+        </p>
+
+        <div class="workspace-footer">
+          <span>
+            <i class="fa-solid fa-crown"></i>
+            Owner
+          </span>
+
+          <button type="button" class="open-button">
+            Open
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      </article>
+    }
+
+    @if (workspaces.length === 0) {
+      <div class="empty-state">
+        <div class="empty-icon">
+          <i class="fa-solid fa-layer-group"></i>
+        </div>
+
+        <h2>Create your first workspace</h2>
+
+        <p>Workspaces keep projects, tasks, clients and members organized separately.</p>
+
+        <button class="primary-button" type="button" (click)="openCreateForm()">
+          Create Workspace
+        </button>
+      </div>
+    }
+  </div>
+
+  @if (showForm) {
+    <div class="modal-backdrop" (click)="closeForm()">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div>
+            <span class="eyebrow"> NEW WORKSPACE </span>
+
+            <h2>Create Workspace</h2>
+          </div>
+
+          <button type="button" class="close-button" (click)="closeForm()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <form [formGroup]="workspaceForm" (ngSubmit)="createWorkspace()">
+          <div class="form-group">
+            <label> Workspace Name </label>
+
+            <input type="text" formControlName="name" placeholder="e.g. Marvills" />
+
+            @if (workspaceForm.controls.name.touched && workspaceForm.controls.name.invalid) {
+              <small class="error"> Workspace name is required. </small>
+            }
+          </div>
+
+          <div class="form-group">
+            <label> Description </label>
+
+            <textarea
+              rows="4"
+              formControlName="description"
+              placeholder="What is this workspace for?"
+            ></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="secondary-button" (click)="closeForm()">Cancel</button>
+
+            <button type="submit" class="primary-button" [disabled]="saving">
+              @if (saving) {
+                <i class="fa-solid fa-spinner fa-spin"></i>
+                Creating...
+              } @else {
+                Create Workspace
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</section>

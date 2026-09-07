@@ -174,3 +174,151 @@
   color: var(--danger);
   border-color: rgba(255, 80, 90, 0.3);
 }
+
+.workspace-selector {
+  position: relative;
+  margin: 8px 5px 5px;
+}
+
+.workspace-current {
+  width: 100%;
+  min-height: 53px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--text-primary);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.workspace-current:hover {
+  border-color: rgba(89, 117, 255, 0.35);
+}
+
+.workspace-avatar,
+.option-avatar {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  color: #fff;
+  background: linear-gradient(135deg, #536fff, #7e5aee);
+  font-weight: 700;
+}
+
+.workspace-avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 10px;
+}
+
+.workspace-name {
+  min-width: 0;
+  flex: 1;
+  text-align: left;
+}
+
+.workspace-name small,
+.workspace-name strong {
+  display: block;
+}
+
+.workspace-name small {
+  margin-bottom: 3px;
+  color: var(--text-muted);
+  font-size: 6px;
+  letter-spacing: 0.8px;
+}
+
+.workspace-name strong {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-current > i {
+  color: var(--text-muted);
+  font-size: 8px;
+  transition: transform 0.2s ease;
+}
+
+.workspace-current > i.rotated {
+  transform: rotate(180deg);
+}
+
+.workspace-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 300;
+  width: 100%;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.workspace-option {
+  width: 100%;
+  min-height: 39px;
+  padding: 5px 7px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  background: transparent;
+  font-size: 8px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.workspace-option:hover,
+.workspace-option.active {
+  color: var(--text-primary);
+  background: var(--surface-hover);
+}
+
+.workspace-option > span:nth-child(2) {
+  flex: 1;
+}
+
+.workspace-option > i {
+  color: var(--primary);
+  font-size: 7px;
+}
+
+.option-avatar {
+  width: 26px;
+  height: 26px;
+  font-size: 8px;
+}
+
+.workspace-menu-divider {
+  height: 1px;
+  margin: 5px 0;
+  background: var(--border);
+}
+
+.manage-workspaces {
+  min-height: 36px;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 6px;
+  color: var(--primary);
+  text-decoration: none;
+  font-size: 8px;
+}
+
+.manage-workspaces:hover {
+  background: var(--primary-soft);
+}

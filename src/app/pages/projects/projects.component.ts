@@ -79,7 +79,7 @@ export class ProjectsComponent implements OnInit {
 
     const value = this.projectForm.getRawValue();
 
-    const project: Project = {
+    const project: Omit<Project, 'workspaceId'> = {
       name: value.name,
       clientName: value.clientName,
       description: value.description,

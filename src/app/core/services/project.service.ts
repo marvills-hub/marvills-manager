@@ -10,24 +10,35 @@ import {
   query,
   serverTimestamp,
   updateDoc,
+  where,
 } from '@angular/fire/firestore';
-import { Observable } from 'rxjs';
+import { Observable, of, switchMap } from 'rxjs';
 import { Project } from '../models/project.model';
+import { WorkspaceService } from './workspace.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ProjectService {
   private firestore = inject(Firestore);
+  private workspaceService = inject(WorkspaceService);
 
   getProjects(): Observable<Project[]> {
-    const projectsRef = collection(this.firestore, 'projects');
+    return this.workspaceService.currentWorkspace$.pipe(
+      switchMap((workspace) => {
+        if (!workspace?.id) {
+          return of([]);
+        }
 
-    const projectsQuery = query(projectsRef);
+        const projectsRef = collection(this.firestore, 'projects');
 
-    return collectionData(projectsQuery, {
-      idField: 'id',
-    }) as Observable<Project[]>;
+        const projectsQuery = query(projectsRef, where('workspaceId', '==', workspace.id));
+
+        return collectionData(projectsQuery, {
+          idField: 'id',
+        }) as Observable<Project[]>;
+      }),
+    );
   }
 
   getProject(id: string): Observable<Project> {
@@ -38,7 +49,13 @@ export class ProjectService {
     }) as Observable<Project>;
   }
 
-  createProject(project: Project) {
+  createProject(project: Omit<Project, 'workspaceId'>) {
+    const workspace = this.workspaceService.currentWorkspace();
+
+    if (!workspace?.id) {
+      throw new Error('No workspace selected.');
+    }
+
     const projectsRef = collection(this.firestore, 'projects');
 
     const cleanProject = Object.fromEntries(
@@ -47,6 +64,7 @@ export class ProjectService {
 
     return addDoc(projectsRef, {
       ...cleanProject,
+      workspaceId: workspace.id,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });

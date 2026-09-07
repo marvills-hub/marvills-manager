@@ -71,15 +71,22 @@ export class TasksComponent implements OnInit {
 
     const value = this.taskForm.getRawValue();
 
-    const task: ProjectTask = {
+    const task: Omit<ProjectTask, 'workspaceId'> = {
       title: value.title,
       description: value.description,
+
       projectId: value.projectId,
+
       status: value.status,
+
       priority: value.priority,
+
       assignee: value.assignee,
-      dueDate: value.dueDate ? new Date(value.dueDate) : undefined,
     };
+
+    if (value.dueDate) {
+      task.dueDate = new Date(value.dueDate);
+    }
 
     if (this.editingTask?.id) {
       await this.taskService.updateTask(this.editingTask.id, task);

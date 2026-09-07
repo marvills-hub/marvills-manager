@@ -4,6 +4,7 @@ export type Priority = 'low' | 'medium' | 'high' | 'urgent';
 
 export interface Project {
   id?: string;
+  workspaceId: string;
   name: string;
   description?: string;
   clientName?: string;
@@ -12,6 +13,6 @@ export interface Project {
   progress: number;
   startDate?: Date;
   dueDate?: Date;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: any;
+  updatedAt?: any;
 }

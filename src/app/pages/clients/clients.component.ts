@@ -36,7 +36,14 @@ export class ClientsComponent implements OnInit {
       this.clientForm.markAllAsTouched();
       return;
     }
-    const client = this.clientForm.getRawValue();
+    const value = this.clientForm.getRawValue();
+
+    const client: Omit<Client, 'workspaceId'> = {
+      name: value.name,
+      company: value.company,
+      email: value.email,
+      phone: value.phone,
+    };
 
     if (this.editingClient?.id) {
       await this.clientService.updateClient(this.editingClient.id, client);

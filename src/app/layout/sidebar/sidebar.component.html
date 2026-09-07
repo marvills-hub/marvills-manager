@@ -11,6 +11,57 @@
     </div>
   </div>
 
+  <div class="workspace-selector">
+    <button type="button" class="workspace-current" (click)="toggleWorkspaceMenu()">
+      <div class="workspace-avatar">
+        {{ workspaceService.currentWorkspace()?.name?.charAt(0)?.toUpperCase() || 'W' }}
+      </div>
+
+      <div class="workspace-name">
+        <small> CURRENT WORKSPACE </small>
+
+        <strong>
+          {{ workspaceService.currentWorkspace()?.name || 'Select Workspace' }}
+        </strong>
+      </div>
+
+      <i class="fa-solid fa-chevron-down" [class.rotated]="workspaceMenuOpen"></i>
+    </button>
+
+    @if (workspaceMenuOpen) {
+      <div class="workspace-menu">
+        @for (workspace of workspaces; track workspace.id) {
+          <button
+            type="button"
+            class="workspace-option"
+            [class.active]="workspaceService.currentWorkspace()?.id === workspace.id"
+            (click)="selectWorkspace(workspace)"
+          >
+            <span class="option-avatar">
+              {{ workspace.name.charAt(0).toUpperCase() }}
+            </span>
+
+            <span>
+              {{ workspace.name }}
+            </span>
+
+            @if (workspaceService.currentWorkspace()?.id === workspace.id) {
+              <i class="fa-solid fa-check"></i>
+            }
+          </button>
+        }
+
+        <div class="workspace-menu-divider"></div>
+
+        <a routerLink="/workspaces" class="manage-workspaces" (click)="workspaceMenuOpen = false">
+          <i class="fa-solid fa-plus"></i>
+
+          Manage Workspaces
+        </a>
+      </div>
+    }
+  </div>
+
   <div class="menu-label">WORKSPACE</div>
 
   <nav class="nav-menu">
@@ -32,6 +83,16 @@
     <a routerLink="/clients" routerLinkActive="active">
       <i class="fa-regular fa-user"></i>
       <span>Clients</span>
+    </a>
+
+    <a routerLink="/members" routerLinkActive="active">
+      <i class="fa-solid fa-users"></i>
+      <span> Members </span>
+    </a>
+
+    <a routerLink="/workspaces" routerLinkActive="active">
+      <i class="fa-solid fa-layer-group"></i>
+      <span> Workspaces </span>
     </a>
   </nav>
 
