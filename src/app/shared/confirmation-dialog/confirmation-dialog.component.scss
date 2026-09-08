@@ -1,0 +1,117 @@
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  padding: 20px;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(3px);
+}
+
+.confirmation-dialog {
+  width: min(390px, 100%);
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+
+  &.danger {
+    .dialog-icon {
+      color: var(--danger);
+      background: rgba(255, 70, 90, 0.09);
+      border-color: rgba(255, 70, 90, 0.18);
+    }
+  }
+
+  &.warning {
+    .dialog-icon {
+      color: var(--warning);
+      background: rgba(255, 170, 40, 0.09);
+      border-color: rgba(255, 170, 40, 0.18);
+    }
+  }
+}
+
+.dialog-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(83, 111, 255, 0.18);
+  border-radius: 9px;
+  color: var(--primary);
+  background: var(--primary-soft);
+  font-size: 14px;
+}
+
+.dialog-content {
+  margin-top: 15px;
+
+  .dialog-label {
+    color: var(--primary);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+  }
+
+  h3 {
+    margin: 5px 0 7px;
+    color: var(--text-primary);
+    font-size: 18px;
+  }
+
+  p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+}
+
+.dialog-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+
+  button {
+    min-height: 38px;
+    padding: 0 14px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.cancel-button {
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  background: var(--surface-2);
+
+  &:hover:not(:disabled) {
+    color: var(--text-primary);
+    border-color: rgba(83, 111, 255, 0.35);
+  }
+}
+
+.confirm-button {
+  border: 0;
+  color: #fff;
+  background: linear-gradient(135deg, #536fff, #7958ee);
+
+  &.danger {
+    background: linear-gradient(135deg, #ef4760, #d93650);
+  }
+
+  &.warning {
+    background: linear-gradient(135deg, #e99a26, #d97d17);
+  }
+}

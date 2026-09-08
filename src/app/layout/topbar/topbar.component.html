@@ -2,13 +2,47 @@
   <button class="mobile-menu-button" type="button" (click)="menuToggle.emit()">
     <i class="fa-solid fa-bars"></i>
   </button>
-  <div class="search-box">
-    <i class="fa-solid fa-magnifying-glass"></i>
 
-    <input type="text" placeholder="Search projects or tasks..." />
+  @if (topbarService.projectContext(); as project) {
+    <div class="project-context">
+      <a routerLink="/projects" class="project-back-button" title="Back to projects">
+        <i class="fa-solid fa-arrow-left"></i>
+      </a>
 
-    <span class="shortcut"> Ctrl K </span>
-  </div>
+      <div class="project-context-content">
+        <div class="project-context-title">
+          <strong>{{ project.name }}</strong>
+
+          <span class="project-status" [class]="project.status">
+            <span class="status-dot"></span>
+            {{ project.status }}
+          </span>
+        </div>
+
+        <div class="project-context-meta">
+          <span>
+            <i class="fa-regular fa-building"></i>
+            {{ project.clientName }}
+          </span>
+
+          <span class="meta-divider"></span>
+
+          <span class="project-priority" [class]="project.priority">
+            <i class="fa-solid fa-flag"></i>
+            {{ project.priority }} priority
+          </span>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <div class="search-box">
+      <i class="fa-solid fa-magnifying-glass"></i>
+
+      <input type="text" placeholder="Search projects or tasks..." />
+
+      <span class="shortcut">Ctrl K</span>
+    </div>
+  }
 
   <div class="topbar-actions">
     <button class="action-button" type="button" (click)="themeService.toggleTheme()">
@@ -21,7 +55,6 @@
 
     <button class="action-button notification" type="button">
       <i class="fa-regular fa-bell"></i>
-
       <span></span>
     </button>
 
@@ -29,9 +62,8 @@
       <div class="user-avatar">MV</div>
 
       <div>
-        <strong> Marvills </strong>
-
-        <span> Project Manager </span>
+        <strong>Marvills</strong>
+        <span>Project Manager</span>
       </div>
     </div>
   </div>

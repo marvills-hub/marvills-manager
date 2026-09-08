@@ -2,36 +2,11 @@
   @if (loading) {
     <div class="loading-state">
       <i class="fa-solid fa-spinner fa-spin"></i>
-
       Loading project...
     </div>
   }
 
   @if (!loading && project) {
-    <div class="page-header">
-      <div class="header-left">
-        <a routerLink="/projects" class="back-button">
-          <i class="fa-solid fa-arrow-left"></i>
-        </a>
-
-        <div>
-          <span class="eyebrow"> PROJECT WORKSPACE </span>
-
-          <h1>
-            {{ project.name }}
-          </h1>
-
-          <p>
-            {{ project.clientName || 'Personal Project' }}
-          </p>
-        </div>
-      </div>
-
-      <div class="project-status" [class]="project.status">
-        {{ project.status }}
-      </div>
-    </div>
-
     <div class="project-tabs">
       <button [class.active]="activeTab === 'overview'" (click)="activeTab = 'overview'">
         Overview
@@ -44,14 +19,22 @@
           {{ tasks.length }}
         </span>
       </button>
+
+      <button [class.active]="activeTab === 'attachments'" (click)="activeTab = 'attachments'">
+        Attachments
+
+        <span>
+          {{ attachmentCount }}
+        </span>
+      </button>
     </div>
 
     @if (activeTab === 'overview') {
       <div class="stats-grid">
         <article class="stat-card">
-          <span> Project Progress </span>
+          <span>Project Progress</span>
 
-          <strong> {{ project.progress }}% </strong>
+          <strong>{{ project.progress }}%</strong>
 
           <div class="progress-track">
             <div class="progress-value" [style.width.%]="project.progress"></div>
@@ -59,33 +42,33 @@
         </article>
 
         <article class="stat-card">
-          <span> Total Tasks </span>
+          <span>Total Tasks</span>
 
           <strong>
             {{ tasks.length }}
           </strong>
 
-          <small> Assigned to project </small>
+          <small>Assigned to project</small>
         </article>
 
         <article class="stat-card">
-          <span> Completed </span>
+          <span>Completed</span>
 
           <strong>
             {{ completedTasks }}
           </strong>
 
-          <small> {{ taskProgress }}% of tasks </small>
+          <small>{{ taskProgress }}% of tasks</small>
         </article>
 
         <article class="stat-card">
-          <span> In Progress </span>
+          <span>In Progress</span>
 
           <strong>
             {{ inProgressTasks }}
           </strong>
 
-          <small> Currently active </small>
+          <small>Currently active</small>
         </article>
       </div>
 
@@ -97,7 +80,7 @@
 
           <div class="info-list">
             <div>
-              <span> Client </span>
+              <span>Client</span>
 
               <strong>
                 {{ project.clientName || 'Personal Project' }}
@@ -105,7 +88,7 @@
             </div>
 
             <div>
-              <span> Status </span>
+              <span>Status</span>
 
               <strong>
                 {{ project.status }}
@@ -113,7 +96,7 @@
             </div>
 
             <div>
-              <span> Priority </span>
+              <span>Priority</span>
 
               <strong [class]="project.priority">
                 {{ project.priority }}
@@ -121,7 +104,7 @@
             </div>
 
             <div>
-              <span> Start Date </span>
+              <span>Start Date</span>
 
               <strong>
                 @if (project.startDate) {
@@ -133,7 +116,7 @@
             </div>
 
             <div>
-              <span> Deadline </span>
+              <span>Deadline</span>
 
               <strong>
                 @if (project.dueDate) {
@@ -210,7 +193,7 @@
             <div class="empty-state">
               <i class="fa-regular fa-square-check"></i>
 
-              <strong> No tasks yet </strong>
+              <strong>No tasks yet</strong>
 
               <p>Add tasks from your Kanban board.</p>
             </div>
@@ -218,5 +201,189 @@
         </div>
       </div>
     }
+
+    @if (activeTab === 'attachments') {
+      <section class="attachments-panel">
+        <div class="attachments-header">
+          <div>
+            <h2>Project Attachments</h2>
+
+            <p>
+              Files attached to
+              {{ project.name }}.
+            </p>
+          </div>
+
+          <span class="attachment-count">
+            <i class="fa-solid fa-paperclip"></i>
+
+            {{ attachmentCount }}
+            {{ attachmentCount === 1 ? 'file' : 'files' }}
+          </span>
+        </div>
+
+        @if (attachments.length) {
+          <div class="attachments-grid">
+            @for (attachment of attachments; track attachment.id) {
+              <button type="button" class="attachment-card" (click)="openPreview(attachment)">
+                <div class="attachment-preview">
+                  @if (isImage(attachment)) {
+                    <img [src]="attachment.url" [alt]="attachment.name" />
+                  } @else {
+                    <div class="file-preview">
+                      <i [class]="getFileIcon(attachment)"></i>
+
+                      <span>
+                        {{ getFileTypeLabel(attachment) }}
+                      </span>
+                    </div>
+                  }
+
+                  <div class="preview-indicator">
+                    <i class="fa-regular fa-eye"></i>
+                  </div>
+                </div>
+
+                <div class="attachment-info">
+                  <strong [title]="attachment.name">
+                    {{ attachment.name }}
+                  </strong>
+
+                  <div class="attachment-meta">
+                    <span>
+                      {{ getFileTypeLabel(attachment) }}
+                    </span>
+
+                    <span class="meta-dot"></span>
+
+                    <span>
+                      {{ formatFileSize(attachment.size) }}
+                    </span>
+                  </div>
+                </div>
+              </button>
+            }
+          </div>
+        } @else {
+          <div class="empty-state attachment-empty">
+            <i class="fa-regular fa-folder-open"></i>
+
+            <strong>No attachments</strong>
+
+            <p>Files uploaded to this project will appear here.</p>
+          </div>
+        }
+      </section>
+    }
   }
 </section>
+
+@if (previewAttachment) {
+  <div class="preview-overlay" (click)="closePreview()">
+    <section class="preview-modal" (click)="$event.stopPropagation()">
+      <div class="preview-header">
+        <div class="preview-file-info">
+          <div class="preview-file-icon">
+            <i [class]="getFileIcon(previewAttachment)"></i>
+          </div>
+
+          <div>
+            <strong [title]="previewAttachment.name">
+              {{ previewAttachment.name }}
+            </strong>
+
+            <span>
+              {{ getFileTypeLabel(previewAttachment) }}
+              ·
+              {{ formatFileSize(previewAttachment.size) }}
+            </span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          class="preview-close"
+          (click)="closePreview()"
+          aria-label="Close preview"
+        >
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="preview-body">
+        @if (isImage(previewAttachment)) {
+          <div class="image-viewer">
+            <img [src]="previewAttachment.url" [alt]="previewAttachment.name" />
+          </div>
+        } @else if (isPdf(previewAttachment)) {
+          <iframe
+            class="document-viewer"
+            [src]="previewAttachment.url"
+            [title]="previewAttachment.name"
+          ></iframe>
+        } @else if (isVideo(previewAttachment)) {
+          <div class="media-viewer">
+            <video [src]="previewAttachment.url" controls></video>
+          </div>
+        } @else if (isAudio(previewAttachment)) {
+          <div class="audio-viewer">
+            <div class="audio-icon">
+              <i class="fa-solid fa-file-audio"></i>
+            </div>
+
+            <strong>
+              {{ previewAttachment.name }}
+            </strong>
+
+            <audio [src]="previewAttachment.url" controls></audio>
+          </div>
+        } @else if (isText(previewAttachment)) {
+          <div class="text-preview">
+            <iframe
+              class="document-viewer"
+              [src]="previewAttachment.url"
+              [title]="previewAttachment.name"
+            ></iframe>
+          </div>
+        } @else {
+          <div class="unsupported-preview">
+            <div class="unsupported-icon">
+              <i [class]="getFileIcon(previewAttachment)"></i>
+            </div>
+
+            <strong>
+              {{ getFileTypeLabel(previewAttachment) }}
+              File
+            </strong>
+
+            <p>
+              A browser preview isn't available for this file type. You can still open the original
+              file.
+            </p>
+          </div>
+        }
+      </div>
+
+      <div class="preview-footer">
+        <div>
+          <span>File size</span>
+
+          <strong>
+            {{ formatFileSize(previewAttachment.size) }}
+          </strong>
+        </div>
+
+        <a
+          [href]="previewAttachment.url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="open-file-button"
+        >
+          <i class="fa-solid fa-arrow-up-right-from-square"></i>
+
+          Open Full File
+        </a>
+      </div>
+    </section>
+  </div>
+}

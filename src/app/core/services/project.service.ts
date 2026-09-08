@@ -6,6 +6,7 @@ import {
   deleteDoc,
   doc,
   docData,
+  DocumentReference,
   Firestore,
   query,
   serverTimestamp,
@@ -14,6 +15,7 @@ import {
 } from '@angular/fire/firestore';
 import { Observable, of, switchMap } from 'rxjs';
 import { Project } from '../models/project.model';
+import { Attachment } from '../models/attachment.model';
 import { WorkspaceService } from './workspace.service';
 
 @Injectable({
@@ -49,7 +51,7 @@ export class ProjectService {
     }) as Observable<Project>;
   }
 
-  createProject(project: Omit<Project, 'workspaceId'>) {
+  createProject(project: Omit<Project, 'workspaceId'>): Promise<DocumentReference> {
     const workspace = this.workspaceService.currentWorkspace();
 
     if (!workspace?.id) {
@@ -70,7 +72,7 @@ export class ProjectService {
     });
   }
 
-  updateProject(id: string, project: Partial<Project>) {
+  updateProject(id: string, project: Partial<Project>): Promise<void> {
     const cleanProject = Object.fromEntries(
       Object.entries(project).filter(([, value]) => value !== undefined),
     );
@@ -83,7 +85,26 @@ export class ProjectService {
     });
   }
 
-  deleteProject(id: string) {
+  updateAttachments(projectId: string, attachments: Attachment[]): Promise<void> {
+    const projectRef = doc(this.firestore, `projects/${projectId}`);
+
+    return updateDoc(projectRef, {
+      attachments,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  removeAttachment(
+    projectId: string,
+    attachmentId: string,
+    attachments: Attachment[],
+  ): Promise<void> {
+    const remainingAttachments = attachments.filter((attachment) => attachment.id !== attachmentId);
+
+    return this.updateAttachments(projectId, remainingAttachments);
+  }
+
+  deleteProject(id: string): Promise<void> {
     const projectRef = doc(this.firestore, `projects/${id}`);
 
     return deleteDoc(projectRef);

@@ -1,12 +1,12 @@
 <section class="tasks-page">
   <div class="page-header">
     <div>
-      <span class="eyebrow"> TASK MANAGEMENT </span>
+      <span class="eyebrow">TASK MANAGEMENT</span>
       <h1>Kanban Board</h1>
       <p>Drag tasks between stages as your work progresses.</p>
     </div>
 
-    <button class="primary-button" (click)="showForm = true">
+    <button class="primary-button" type="button" (click)="openCreateTask()">
       <i class="fa-solid fa-plus"></i>
       New Task
     </button>
@@ -19,21 +19,13 @@
           <span class="column-dot todo"></span>
           <strong>To Do</strong>
         </div>
-
-        <span>
-          {{ todo.length }}
-        </span>
+        <span>{{ todo.length }}</span>
       </div>
 
       <div class="task-drop-zone">
         @for (task of todo; track task.id) {
           <ng-container
-            *ngTemplateOutlet="
-              taskTemplate;
-              context: {
-                $implicit: task,
-              }
-            "
+            *ngTemplateOutlet="taskTemplate; context: { $implicit: task }"
           ></ng-container>
         }
       </div>
@@ -45,21 +37,13 @@
           <span class="column-dot progress"></span>
           <strong>In Progress</strong>
         </div>
-
-        <span>
-          {{ inProgress.length }}
-        </span>
+        <span>{{ inProgress.length }}</span>
       </div>
 
       <div class="task-drop-zone">
         @for (task of inProgress; track task.id) {
           <ng-container
-            *ngTemplateOutlet="
-              taskTemplate;
-              context: {
-                $implicit: task,
-              }
-            "
+            *ngTemplateOutlet="taskTemplate; context: { $implicit: task }"
           ></ng-container>
         }
       </div>
@@ -71,21 +55,13 @@
           <span class="column-dot review"></span>
           <strong>Review</strong>
         </div>
-
-        <span>
-          {{ review.length }}
-        </span>
+        <span>{{ review.length }}</span>
       </div>
 
       <div class="task-drop-zone">
         @for (task of review; track task.id) {
           <ng-container
-            *ngTemplateOutlet="
-              taskTemplate;
-              context: {
-                $implicit: task,
-              }
-            "
+            *ngTemplateOutlet="taskTemplate; context: { $implicit: task }"
           ></ng-container>
         }
       </div>
@@ -97,21 +73,13 @@
           <span class="column-dot completed"></span>
           <strong>Completed</strong>
         </div>
-
-        <span>
-          {{ completed.length }}
-        </span>
+        <span>{{ completed.length }}</span>
       </div>
 
       <div class="task-drop-zone">
         @for (task of completed; track task.id) {
           <ng-container
-            *ngTemplateOutlet="
-              taskTemplate;
-              context: {
-                $implicit: task,
-              }
-            "
+            *ngTemplateOutlet="taskTemplate; context: { $implicit: task }"
           ></ng-container>
         }
       </div>
@@ -126,28 +94,45 @@
         </span>
 
         <div class="task-actions">
-          <button type="button" (click)="editTask(task)">
+          <button type="button" title="Edit task" (click)="editTask(task)">
             <i class="fa-solid fa-pen"></i>
           </button>
 
-          <button type="button" (click)="deleteTask(task)">
+          <button type="button" title="Delete task" (click)="requestDeleteTask(task)">
             <i class="fa-regular fa-trash-can"></i>
           </button>
         </div>
       </div>
 
-      <h3>
-        {{ task.title }}
-      </h3>
+      <h3>{{ task.title }}</h3>
 
-      <p>
-        {{ task.description || 'No description' }}
-      </p>
+      <p>{{ task.description || 'No description' }}</p>
 
       <span class="project-name">
         <i class="fa-regular fa-folder"></i>
         {{ getProjectName(task.projectId) }}
       </span>
+
+      @if (task.attachments?.length) {
+        <button
+          type="button"
+          class="task-attachments-summary"
+          (click)="openTaskAttachments(task, $event)"
+        >
+          <div>
+            <i class="fa-solid fa-paperclip"></i>
+            <span>
+              {{ task.attachments?.length }}
+              {{ task.attachments?.length === 1 ? 'attachment' : 'attachments' }}
+            </span>
+          </div>
+
+          <span class="attachment-view">
+            View
+            <i class="fa-regular fa-eye"></i>
+          </span>
+        </button>
+      }
 
       <div class="task-footer">
         <div class="assignee">
@@ -165,19 +150,23 @@
   </ng-template>
 
   @if (showForm) {
-    <div class="drawer-overlay" (click)="showForm = false"></div>
+    <div class="drawer-overlay" (click)="closeForm()"></div>
 
-    <aside class="form-drawer">
+    <aside
+      class="form-drawer"
+      [class.dragging-files]="isDraggingFiles"
+      (dragenter)="onDragEnter($event)"
+      (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave($event)"
+      (drop)="onDrop($event)"
+    >
       <div class="drawer-header">
         <div>
-          <span class="eyebrow"> TASK </span>
-
-          <h2>
-            {{ editingTask ? 'Edit Task' : 'Create Task' }}
-          </h2>
+          <span class="eyebrow">TASK</span>
+          <h2>{{ editingTask ? 'Edit Task' : 'Create Task' }}</h2>
         </div>
 
-        <button class="close-button" (click)="showForm = false">
+        <button class="close-button" type="button" [disabled]="saving" (click)="closeForm()">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
@@ -185,7 +174,6 @@
       <form [formGroup]="taskForm" (ngSubmit)="saveTask()">
         <div class="form-group">
           <label>Task Title</label>
-
           <input type="text" formControlName="title" />
         </div>
 
@@ -205,8 +193,168 @@
 
         <div class="form-group">
           <label>Description</label>
-
           <textarea rows="4" formControlName="description"></textarea>
+        </div>
+
+        <div class="form-group">
+          <div class="attachment-label">
+            <label>Attachments</label>
+            <span>{{ totalAttachmentCount }} / {{ maxAttachments }}</span>
+          </div>
+
+          <div class="attachment-limits">
+            <span>
+              <i class="fa-solid fa-shield-halved"></i>
+              {{ formatFileSize(maxFileSize) }} max per file
+            </span>
+
+            <span>
+              <i class="fa-regular fa-images"></i>
+              Images optimized automatically
+            </span>
+          </div>
+
+          @if (remainingAttachmentSlots > 0) {
+            <label class="file-picker" [class.disabled]="saving" [class.dragging]="isDraggingFiles">
+              <input type="file" multiple [disabled]="saving" (change)="selectFiles($event)" />
+
+              <div class="file-picker-icon">
+                @if (isDraggingFiles) {
+                  <i class="fa-solid fa-file-arrow-down"></i>
+                } @else {
+                  <i class="fa-solid fa-cloud-arrow-up"></i>
+                }
+              </div>
+
+              <div class="file-picker-content">
+                @if (isDraggingFiles) {
+                  <strong>Drop files here</strong>
+                  <span>Release to add files to this task</span>
+                } @else {
+                  <strong>Add files</strong>
+                  <span>
+                    Drag files here or click to browse ·
+                    {{ remainingAttachmentSlots }}
+                    {{ remainingAttachmentSlots === 1 ? 'slot' : 'slots' }}
+                    remaining
+                  </span>
+                }
+              </div>
+
+              @if (!isDraggingFiles) {
+                <i class="fa-solid fa-plus file-picker-add"></i>
+              }
+            </label>
+          } @else {
+            <div class="attachment-limit-reached">
+              <i class="fa-solid fa-circle-check"></i>
+
+              <div>
+                <strong>Attachment limit reached</strong>
+                <span>Remove an attachment before adding another file.</span>
+              </div>
+            </div>
+          }
+
+          @if (selectedFiles.length) {
+            <div class="selected-files">
+              <span class="attachment-section-title">Ready to upload</span>
+
+              @for (file of selectedFiles; track file.name + file.size + file.lastModified) {
+                <div class="selected-file">
+                  <div class="selected-file-icon">
+                    @if (file.type.startsWith('image/')) {
+                      <i class="fa-regular fa-image"></i>
+                    } @else {
+                      <i class="fa-regular fa-file"></i>
+                    }
+                  </div>
+
+                  <div class="selected-file-info">
+                    <strong>{{ file.name }}</strong>
+
+                    <div class="selected-file-meta">
+                      <span>{{ formatFileSize(file.size) }}</span>
+
+                      @if (file.type.startsWith('image/')) {
+                        <span class="optimization-badge">
+                          <i class="fa-solid fa-wand-magic-sparkles"></i>
+                          Optimize on upload
+                        </span>
+                      }
+                    </div>
+                  </div>
+
+                  <button type="button" [disabled]="saving" (click)="removeSelectedFile($index)">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+              }
+            </div>
+          }
+
+          @if (editingTask && editingTask.attachments?.length) {
+            <div class="existing-attachments">
+              <span class="attachment-section-title">Existing files</span>
+
+              @for (attachment of editingTask.attachments; track attachment.id) {
+                <div class="existing-attachment">
+                  <div class="existing-attachment-icon">
+                    <i [class]="getFileIcon(attachment)"></i>
+                  </div>
+
+                  <div class="existing-attachment-info">
+                    <strong>{{ attachment.name }}</strong>
+                    <span>{{ formatFileSize(attachment.size) }}</span>
+                  </div>
+
+                  <div class="existing-attachment-actions">
+                    <button
+                      type="button"
+                      title="Preview attachment"
+                      (click)="openAttachmentPreview(attachment)"
+                    >
+                      <i class="fa-regular fa-eye"></i>
+                    </button>
+
+                    <a
+                      [href]="attachment.url"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Open attachment"
+                    >
+                      <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    </a>
+
+                    <button
+                      type="button"
+                      title="Remove attachment"
+                      [disabled]="saving"
+                      (click)="requestRemoveExistingAttachment(attachment)"
+                    >
+                      <i class="fa-regular fa-trash-can"></i>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
+          @if (hasPendingAttachmentDeletions) {
+            <div class="pending-deletions-notice">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+
+              <div>
+                <strong>
+                  {{ pendingAttachmentDeletionCount }}
+                  {{ pendingAttachmentDeletionCount === 1 ? 'file' : 'files' }}
+                  marked for deletion
+                </strong>
+
+                <span> Files will only be permanently deleted after you save. </span>
+              </div>
+            </div>
+          }
         </div>
 
         <div class="form-row">
@@ -215,11 +363,8 @@
 
             <select formControlName="status">
               <option value="todo">To Do</option>
-
               <option value="in-progress">In Progress</option>
-
               <option value="review">Review</option>
-
               <option value="completed">Completed</option>
             </select>
           </div>
@@ -229,11 +374,8 @@
 
             <select formControlName="priority">
               <option value="low">Low</option>
-
               <option value="medium">Medium</option>
-
               <option value="high">High</option>
-
               <option value="urgent">Urgent</option>
             </select>
           </div>
@@ -241,18 +383,216 @@
 
         <div class="form-group">
           <label>Due Date</label>
-
           <input type="date" formControlName="dueDate" />
         </div>
 
         <div class="form-actions">
-          <button type="button" class="secondary-button" (click)="showForm = false">Cancel</button>
+          <button type="button" class="secondary-button" [disabled]="saving" (click)="closeForm()">
+            Cancel
+          </button>
 
-          <button type="submit" class="primary-button">
-            {{ editingTask ? 'Save Changes' : 'Create Task' }}
+          <button type="submit" class="primary-button" [disabled]="saving">
+            @if (saving) {
+              <i class="fa-solid fa-spinner fa-spin"></i>
+              {{ selectedFiles.length ? 'Uploading...' : 'Saving...' }}
+            } @else {
+              {{ editingTask ? 'Save Changes' : 'Create Task' }}
+            }
           </button>
         </div>
       </form>
     </aside>
   }
+
+  @if (removeAttachmentDialogOpen) {
+    <app-confirmation-dialog
+      title="Remove Attachment?"
+      [message]="
+        'Remove ' +
+        (attachmentPendingRemoval?.name || 'this file') +
+        ' from this task? The file will only be permanently deleted after you save.'
+      "
+      confirmText="Remove"
+      cancelText="Keep File"
+      type="danger"
+      (confirmed)="confirmRemoveExistingAttachment()"
+      (cancelled)="cancelConfirmation()"
+    />
+  }
+
+  @if (saveAttachmentChangesDialogOpen) {
+    <app-confirmation-dialog
+      title="Save Attachment Changes?"
+      [message]="
+        pendingAttachmentDeletionCount === 1
+          ? 'You marked 1 attachment for deletion. Saving will permanently delete the file from storage.'
+          : 'You marked ' +
+            pendingAttachmentDeletionCount +
+            ' attachments for deletion. Saving will permanently delete these files from storage.'
+      "
+      confirmText="Save & Delete"
+      cancelText="Go Back"
+      type="warning"
+      [loading]="saving"
+      (confirmed)="confirmSaveAttachmentChanges()"
+      (cancelled)="cancelConfirmation()"
+    />
+  }
+
+  @if (deleteTaskDialogOpen) {
+    <app-confirmation-dialog
+      title="Delete Task?"
+      [message]="
+        'Delete ' +
+        (taskPendingDeletion?.title || 'this task') +
+        '? The task and all uploaded attachments will be permanently deleted.'
+      "
+      confirmText="Delete Task"
+      cancelText="Keep Task"
+      type="danger"
+      [loading]="deletingTask"
+      (confirmed)="confirmDeleteTask()"
+      (cancelled)="cancelConfirmation()"
+    />
+  }
 </section>
+
+@if (attachmentGalleryTask) {
+  <div class="attachment-gallery-overlay" (click)="closeTaskAttachments()">
+    <section class="attachment-gallery-modal" (click)="$event.stopPropagation()">
+      <div class="attachment-gallery-header">
+        <div>
+          <span class="eyebrow">ATTACHMENTS</span>
+          <h2>{{ attachmentGalleryTask.title }}</h2>
+          <p>
+            {{ attachmentGalleryTask.attachments?.length || 0 }}
+            {{ attachmentGalleryTask.attachments?.length === 1 ? 'file' : 'files' }}
+          </p>
+        </div>
+
+        <button class="gallery-close" type="button" (click)="closeTaskAttachments()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="attachment-gallery-grid">
+        @for (attachment of attachmentGalleryTask.attachments; track attachment.id) {
+          <button
+            type="button"
+            class="attachment-gallery-card"
+            (click)="openAttachmentPreview(attachment)"
+          >
+            <div class="attachment-gallery-preview">
+              @if (isImage(attachment)) {
+                <img [src]="attachment.url" [alt]="attachment.name" />
+              } @else {
+                <div class="gallery-file-icon">
+                  <i [class]="getFileIcon(attachment)"></i>
+                  <span>{{ getFileTypeLabel(attachment) }}</span>
+                </div>
+              }
+
+              <span class="gallery-view-icon">
+                <i class="fa-regular fa-eye"></i>
+              </span>
+            </div>
+
+            <div class="attachment-gallery-info">
+              <strong [title]="attachment.name">
+                {{ attachment.name }}
+              </strong>
+
+              <span>
+                {{ getFileTypeLabel(attachment) }} ·
+                {{ formatFileSize(attachment.size) }}
+              </span>
+            </div>
+          </button>
+        }
+      </div>
+    </section>
+  </div>
+}
+
+@if (previewAttachment) {
+  <div class="file-preview-overlay" (click)="closeAttachmentPreview()">
+    <section class="file-preview-modal" (click)="$event.stopPropagation()">
+      <div class="file-preview-header">
+        <div class="file-preview-title">
+          <div class="file-preview-icon">
+            <i [class]="getFileIcon(previewAttachment)"></i>
+          </div>
+
+          <div>
+            <strong>{{ previewAttachment.name }}</strong>
+            <span>
+              {{ getFileTypeLabel(previewAttachment) }} ·
+              {{ formatFileSize(previewAttachment.size) }}
+            </span>
+          </div>
+        </div>
+
+        <button type="button" class="preview-close" (click)="closeAttachmentPreview()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="file-preview-body">
+        @if (isImage(previewAttachment)) {
+          <div class="image-preview">
+            <img [src]="previewAttachment.url" [alt]="previewAttachment.name" />
+          </div>
+        } @else if (isPdf(previewAttachment) || isText(previewAttachment)) {
+          <iframe
+            class="document-preview"
+            [src]="getSafeResourceUrl(previewAttachment)"
+            [title]="previewAttachment.name"
+          ></iframe>
+        } @else if (isVideo(previewAttachment)) {
+          <div class="video-preview">
+            <video [src]="previewAttachment.url" controls></video>
+          </div>
+        } @else if (isAudio(previewAttachment)) {
+          <div class="audio-preview">
+            <div class="large-file-icon">
+              <i class="fa-solid fa-file-audio"></i>
+            </div>
+
+            <strong>{{ previewAttachment.name }}</strong>
+            <audio [src]="previewAttachment.url" controls></audio>
+          </div>
+        } @else {
+          <div class="unsupported-preview">
+            <div class="large-file-icon">
+              <i [class]="getFileIcon(previewAttachment)"></i>
+            </div>
+
+            <strong>{{ getFileTypeLabel(previewAttachment) }} File</strong>
+
+            <p>
+              Quick preview is not available for this file type. You can still open the original
+              file.
+            </p>
+          </div>
+        }
+      </div>
+
+      <div class="file-preview-footer">
+        <div>
+          <span>File size</span>
+          <strong>{{ formatFileSize(previewAttachment.size) }}</strong>
+        </div>
+
+        <a
+          class="open-full-file"
+          [href]="previewAttachment.url"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <i class="fa-solid fa-arrow-up-right-from-square"></i>
+          Open Full File
+        </a>
+      </div>
+    </section>
+  </div>
+}

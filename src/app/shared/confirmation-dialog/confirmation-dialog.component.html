@@ -1,0 +1,51 @@
+<div class="dialog-backdrop" (click)="cancel()">
+  <div
+    class="confirmation-dialog"
+    [class.danger]="type() === 'danger'"
+    [class.warning]="type() === 'warning'"
+    (click)="$event.stopPropagation()"
+  >
+    <div class="dialog-icon">
+      @if (type() === 'danger') {
+        <i class="fa-solid fa-trash-can"></i>
+      } @else if (type() === 'warning') {
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      } @else {
+        <i class="fa-solid fa-circle-question"></i>
+      }
+    </div>
+
+    <div class="dialog-content">
+      <span class="dialog-label"> CONFIRMATION </span>
+
+      <h3>
+        {{ title() }}
+      </h3>
+
+      <p>
+        {{ message() }}
+      </p>
+    </div>
+
+    <div class="dialog-actions">
+      <button class="cancel-button" type="button" [disabled]="loading()" (click)="cancel()">
+        {{ cancelText() }}
+      </button>
+
+      <button
+        class="confirm-button"
+        type="button"
+        [class.danger]="type() === 'danger'"
+        [class.warning]="type() === 'warning'"
+        [disabled]="loading()"
+        (click)="confirm()"
+      >
+        @if (loading()) {
+          <i class="fa-solid fa-spinner fa-spin"></i>
+        }
+
+        {{ confirmText() }}
+      </button>
+    </div>
+  </div>
+</div>

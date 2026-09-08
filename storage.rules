@@ -1,0 +1,86 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function membershipId(workspaceId) {
+      return workspaceId + "_" + request.auth.uid;
+    }
+
+    function membershipExists(workspaceId) {
+      return isSignedIn()
+        && firestore.exists(
+          /databases/(default)/documents/workspaceMembers/$(membershipId(workspaceId))
+        );
+    }
+
+    function membership(workspaceId) {
+      return firestore.get(
+        /databases/(default)/documents/workspaceMembers/$(membershipId(workspaceId))
+      );
+    }
+
+    function workspaceExists(workspaceId) {
+      return firestore.exists(
+        /databases/(default)/documents/workspaces/$(workspaceId)
+      );
+    }
+
+    function workspace(workspaceId) {
+      return firestore.get(
+        /databases/(default)/documents/workspaces/$(workspaceId)
+      );
+    }
+
+    function isWorkspaceMember(workspaceId) {
+      return isSignedIn()
+        && membershipExists(workspaceId)
+        && membership(workspaceId).data.status == "active";
+    }
+
+    function isWorkspaceOwner(workspaceId) {
+      return isSignedIn()
+        && workspaceExists(workspaceId)
+        && workspace(workspaceId).data.ownerId == request.auth.uid;
+    }
+
+    function hasWorkspaceAccess(workspaceId) {
+      return isWorkspaceOwner(workspaceId)
+        || isWorkspaceMember(workspaceId);
+    }
+
+    match /workspaces/{workspaceId}/projects/{projectId}/attachments/{fileName} {
+      allow read:
+        if hasWorkspaceAccess(workspaceId);
+
+      allow create:
+        if hasWorkspaceAccess(workspaceId)
+        && request.resource.size <= 10 * 1024 * 1024;
+
+      allow update:
+        if false;
+
+      allow delete:
+        if hasWorkspaceAccess(workspaceId);
+    }
+
+    match /workspaces/{workspaceId}/tasks/{taskId}/attachments/{fileName} {
+      allow read:
+        if hasWorkspaceAccess(workspaceId);
+
+      allow create:
+        if hasWorkspaceAccess(workspaceId)
+        && request.resource.size <= 10 * 1024 * 1024;
+
+      allow update:
+        if false;
+
+      allow delete:
+        if hasWorkspaceAccess(workspaceId);
+    }
+  }
+}

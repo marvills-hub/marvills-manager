@@ -1,3 +1,5 @@
+import { Attachment } from './attachment.model';
+
 export type ProjectStatus = 'planning' | 'active' | 'on-hold' | 'completed';
 
 export type Priority = 'low' | 'medium' | 'high' | 'urgent';
@@ -13,6 +15,7 @@ export interface Project {
   progress: number;
   startDate?: Date;
   dueDate?: Date;
+  attachments?: Attachment[];
   createdAt?: any;
   updatedAt?: any;
 }
