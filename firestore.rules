@@ -7,11 +7,26 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isCurrentUser(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isCurrentUser(userId);
+      allow update: if isCurrentUser(userId);
+      allow delete: if false;
+    }
+
     match /workspaces/{workspaceId} {
       allow read, write: if isSignedIn();
     }
 
     match /workspaceMembers/{memberId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /workspaceInvitations/{invitationId} {
       allow read, write: if isSignedIn();
     }
 
@@ -27,12 +42,14 @@ service cloud.firestore {
       allow read, write: if isSignedIn();
     }
 
-    match /invitations/{invitationId} {
+    match /taskStatuses/{statusId} {
       allow read, write: if isSignedIn();
     }
 
     match /{document=**} {
       allow read, write: if false;
     }
+
+   
   }
 }

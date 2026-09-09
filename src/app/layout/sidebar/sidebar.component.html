@@ -6,28 +6,21 @@
       class="brand-icon"
     />
     <div class="brand-text">
-      <strong> MARVILLS </strong>
-      <span> MANAGER </span>
+      <strong>MARVILLS</strong>
+      <span>MANAGER</span>
     </div>
   </div>
-
   <div class="workspace-selector">
     <button type="button" class="workspace-current" (click)="toggleWorkspaceMenu()">
       <div class="workspace-avatar">
         {{ workspaceService.currentWorkspace()?.name?.charAt(0)?.toUpperCase() || 'W' }}
       </div>
-
       <div class="workspace-name">
-        <small> CURRENT WORKSPACE </small>
-
-        <strong>
-          {{ workspaceService.currentWorkspace()?.name || 'Select Workspace' }}
-        </strong>
+        <small>CURRENT WORKSPACE</small>
+        <strong>{{ workspaceService.currentWorkspace()?.name || 'Select Workspace' }}</strong>
       </div>
-
       <i class="fa-solid fa-chevron-down" [class.rotated]="workspaceMenuOpen"></i>
     </button>
-
     @if (workspaceMenuOpen) {
       <div class="workspace-menu">
         @for (workspace of workspaces; track workspace.id) {
@@ -37,98 +30,84 @@
             [class.active]="workspaceService.currentWorkspace()?.id === workspace.id"
             (click)="selectWorkspace(workspace)"
           >
-            <span class="option-avatar">
-              {{ workspace.name.charAt(0).toUpperCase() }}
-            </span>
-
-            <span>
-              {{ workspace.name }}
-            </span>
-
+            <span class="option-avatar">{{ workspace.name.charAt(0).toUpperCase() }}</span>
+            <span>{{ workspace.name }}</span>
             @if (workspaceService.currentWorkspace()?.id === workspace.id) {
               <i class="fa-solid fa-check"></i>
             }
           </button>
         }
-
         <div class="workspace-menu-divider"></div>
-
         <a routerLink="/workspaces" class="manage-workspaces" (click)="workspaceMenuOpen = false">
           <i class="fa-solid fa-plus"></i>
-
           Manage Workspaces
         </a>
       </div>
     }
   </div>
-
   <div class="menu-label">WORKSPACE</div>
-
   <nav class="nav-menu">
     <a routerLink="/dashboard" routerLinkActive="active">
       <i class="fa-solid fa-house"></i>
       <span>Dashboard</span>
     </a>
-
     <a routerLink="/projects" routerLinkActive="active">
       <i class="fa-regular fa-folder"></i>
       <span>Projects</span>
     </a>
-
     <a routerLink="/tasks" routerLinkActive="active">
       <i class="fa-regular fa-square-check"></i>
       <span>Tasks</span>
     </a>
-
     <a routerLink="/clients" routerLinkActive="active">
       <i class="fa-regular fa-user"></i>
       <span>Clients</span>
     </a>
-
     <a routerLink="/members" routerLinkActive="active">
       <i class="fa-solid fa-users"></i>
-      <span> Members </span>
+      <span>Members</span>
     </a>
-
     <a routerLink="/invitations" routerLinkActive="active">
       <i class="fa-solid fa-envelope"></i>
       <span>Invitations</span>
     </a>
-
     <a routerLink="/workspaces" routerLinkActive="active">
       <i class="fa-solid fa-layer-group"></i>
-      <span> Workspaces </span>
+      <span>Workspaces</span>
     </a>
   </nav>
-
   <div class="menu-label">TOOLS</div>
-
   <nav class="nav-menu coming-soon">
     <a>
       <i class="fa-regular fa-calendar"></i>
       <span>Calendar</span>
       <small>Soon</small>
     </a>
-
     <a>
       <i class="fa-regular fa-clock"></i>
       <span>Time Tracking</span>
       <small>Soon</small>
     </a>
-
     <a>
       <i class="fa-solid fa-chart-line"></i>
       <span>Reports</span>
       <small>Soon</small>
     </a>
   </nav>
-
   <div class="sidebar-footer">
-    <div class="avatar">MV</div>
-    <div>
-      <strong> Marvills </strong>
-      <span> Project Manager </span>
-    </div>
+    <a routerLink="/profile" routerLinkActive="active" class="sidebar-profile" title="Open profile">
+      <div class="avatar">
+        @if (photoURL) {
+          <img [src]="photoURL" [alt]="displayName + ' profile image'" />
+        } @else {
+          {{ initials }}
+        }
+      </div>
+      <div class="sidebar-profile-info">
+        <strong>{{ displayName }}</strong>
+        <span>{{ workspaceRole }}</span>
+      </div>
+    </a>
     <button class="logout-button" type="button" (click)="logout()" title="Logout">
       <i class="fa-solid fa-arrow-right-from-bracket"></i>
     </button>

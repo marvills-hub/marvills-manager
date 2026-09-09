@@ -7,7 +7,6 @@ export const routes: Routes = [
     path: 'login',
     loadComponent: () => import('./pages/login/login.component').then((m) => m.LoginComponent),
   },
-
   {
     path: '',
     component: AppLayoutComponent,
@@ -59,6 +58,11 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/invitations/invitations.component').then((m) => m.InvitationsComponent),
       },
+      {
+        path: 'profile',
+        loadComponent: () =>
+          import('./pages/profile/profile.component').then((m) => m.ProfileComponent),
+      },
     ],
   },
   {
@@ -66,39 +70,3 @@ export const routes: Routes = [
     redirectTo: '',
   },
 ];
-
-// import { Routes } from '@angular/router';
-// import { AppLayoutComponent } from './layout/app-layout/app-layout.component';
-
-// export const routes: Routes = [
-//   {
-//     path: '',
-//     component: AppLayoutComponent,
-//     children: [
-//       {
-//         path: '',
-//         redirectTo: 'dashboard',
-//         pathMatch: 'full',
-//       },
-//       {
-//         path: 'dashboard',
-//         loadComponent: () =>
-//           import('./pages/dashboard/dashboard.component').then((m) => m.DashboardComponent),
-//       },
-//       {
-//         path: 'projects',
-//         loadComponent: () =>
-//           import('./pages/projects/projects.component').then((m) => m.ProjectsComponent),
-//       },
-//       {
-//         path: 'tasks',
-//         loadComponent: () => import('./pages/tasks/tasks.component').then((m) => m.TasksComponent),
-//       },
-//       {
-//         path: 'clients',
-//         loadComponent: () =>
-//           import('./pages/clients/clients.component').then((m) => m.ClientsComponent),
-//       },
-//     ],
-//   },
-// ];

@@ -1,157 +1,124 @@
 <section class="tasks-page">
-  <div class="page-header">
-    <div>
-      <span class="eyebrow">TASK MANAGEMENT</span>
-      <h1>Kanban Board</h1>
-      <p>Drag tasks between stages as your work progresses.</p>
-    </div>
-
-    <button class="primary-button" type="button" (click)="openCreateTask()">
-      <i class="fa-solid fa-plus"></i>
-      New Task
-    </button>
-  </div>
-
-  <div class="kanban-board">
-    <section class="kanban-column" data-status="todo">
-      <div class="column-header">
-        <div>
-          <span class="column-dot todo"></span>
-          <strong>To Do</strong>
-        </div>
-        <span>{{ todo.length }}</span>
+  <div class="tasks-toolbar">
+    <div class="tasks-toolbar-left">
+      <div class="view-switcher">
+        <button type="button" [class.active]="activeView === 'board'" (click)="setView('board')">
+          <i class="fa-solid fa-table-columns"></i>
+          Board
+        </button>
+        <button type="button" [class.active]="activeView === 'list'" (click)="setView('list')">
+          <i class="fa-solid fa-list"></i>
+          List
+        </button>
       </div>
 
-      <div class="task-drop-zone">
-        @for (task of todo; track task.id) {
-          <ng-container
-            *ngTemplateOutlet="taskTemplate; context: { $implicit: task }"
-          ></ng-container>
-        }
-      </div>
-    </section>
-
-    <section class="kanban-column" data-status="in-progress">
-      <div class="column-header">
-        <div>
-          <span class="column-dot progress"></span>
-          <strong>In Progress</strong>
-        </div>
-        <span>{{ inProgress.length }}</span>
-      </div>
-
-      <div class="task-drop-zone">
-        @for (task of inProgress; track task.id) {
-          <ng-container
-            *ngTemplateOutlet="taskTemplate; context: { $implicit: task }"
-          ></ng-container>
-        }
-      </div>
-    </section>
-
-    <section class="kanban-column" data-status="review">
-      <div class="column-header">
-        <div>
-          <span class="column-dot review"></span>
-          <strong>Review</strong>
-        </div>
-        <span>{{ review.length }}</span>
-      </div>
-
-      <div class="task-drop-zone">
-        @for (task of review; track task.id) {
-          <ng-container
-            *ngTemplateOutlet="taskTemplate; context: { $implicit: task }"
-          ></ng-container>
-        }
-      </div>
-    </section>
-
-    <section class="kanban-column" data-status="completed">
-      <div class="column-header">
-        <div>
-          <span class="column-dot completed"></span>
-          <strong>Completed</strong>
-        </div>
-        <span>{{ completed.length }}</span>
-      </div>
-
-      <div class="task-drop-zone">
-        @for (task of completed; track task.id) {
-          <ng-container
-            *ngTemplateOutlet="taskTemplate; context: { $implicit: task }"
-          ></ng-container>
-        }
-      </div>
-    </section>
-  </div>
-
-  <ng-template #taskTemplate let-task>
-    <article class="task-card" cdkDrag (cdkDragEnded)="dragEnded($event, task)">
-      <div class="task-card-top">
-        <span class="priority" [class]="task.priority">
-          {{ task.priority }}
-        </span>
-
-        <div class="task-actions">
-          <button type="button" title="Edit task" (click)="editTask(task)">
-            <i class="fa-solid fa-pen"></i>
-          </button>
-
-          <button type="button" title="Delete task" (click)="requestDeleteTask(task)">
-            <i class="fa-regular fa-trash-can"></i>
-          </button>
-        </div>
-      </div>
-
-      <h3>{{ task.title }}</h3>
-
-      <p>{{ task.description || 'No description' }}</p>
-
-      <span class="project-name">
+      <div class="project-filter">
         <i class="fa-regular fa-folder"></i>
-        {{ getProjectName(task.projectId) }}
-      </span>
 
-      @if (task.attachments?.length) {
+        <select
+          [value]="selectedProjectId"
+          (change)="onProjectFilterChange($event)"
+          aria-label="Filter tasks by project"
+        >
+          <option value="all">All Projects ({{ tasks.length }})</option>
+
+          @for (project of projects; track project.id) {
+            @if (project.id) {
+              <option [value]="project.id">
+                {{ project.name }} ({{ getProjectTaskCount(project.id) }})
+              </option>
+            }
+          }
+
+          @if (unassignedProjectTaskCount > 0) {
+            <option value="none">No Project ({{ unassignedProjectTaskCount }})</option>
+          }
+        </select>
+
+        <i class="fa-solid fa-chevron-down filter-chevron"></i>
+      </div>
+
+      @if (selectedProjectId !== 'all') {
         <button
           type="button"
-          class="task-attachments-summary"
-          (click)="openTaskAttachments(task, $event)"
+          class="clear-project-filter"
+          title="Show all projects"
+          (click)="setProjectFilter('all')"
         >
-          <div>
-            <i class="fa-solid fa-paperclip"></i>
-            <span>
-              {{ task.attachments?.length }}
-              {{ task.attachments?.length === 1 ? 'attachment' : 'attachments' }}
-            </span>
-          </div>
-
-          <span class="attachment-view">
-            View
-            <i class="fa-regular fa-eye"></i>
-          </span>
+          <i class="fa-solid fa-xmark"></i>
         </button>
       }
+    </div>
 
-      <div class="task-footer">
-        <div class="assignee">
-          {{ task.assignee ? task.assignee.charAt(0).toUpperCase() : 'M' }}
-        </div>
-
-        @if (task.dueDate) {
-          <span>
-            <i class="fa-regular fa-calendar"></i>
-            {{ getTaskDueDate(task.dueDate) | date: 'MMM d' }}
-          </span>
+    <div class="tasks-toolbar-right">
+      <span class="task-result-count">
+        {{ filteredTaskCount }}
+        {{ filteredTaskCount === 1 ? 'task' : 'tasks' }}
+      </span>
+      <button
+        class="secondary-button manage-statuses-button"
+        type="button"
+        [disabled]="loadingStatuses"
+        (click)="openStatusManager()"
+      >
+        @if (loadingStatuses) {
+          <i class="fa-solid fa-spinner fa-spin"></i>
+        } @else {
+          <i class="fa-solid fa-sliders"></i>
         }
-      </div>
-    </article>
-  </ng-template>
+        Manage Statuses
+      </button>
+      <button class="primary-button" type="button" (click)="openCreateTask()">
+        <i class="fa-solid fa-plus"></i>
+        New Task
+      </button>
+    </div>
+  </div>
+
+  <div class="tasks-content">
+    @if (activeView === 'board') {
+      <app-kanban-view
+        [tasks]="filteredTasks"
+        [projects]="projects"
+        [members]="members"
+        [statuses]="statuses"
+        [updatingTaskId]="updatingTaskId"
+        (edit)="editTask($event)"
+        (delete)="requestDeleteTask($event)"
+        (attachments)="openTaskAttachments($event.task, $event.event)"
+        (orderChange)="changeTaskOrder($event)"
+        (statusUpdate)="updateTaskStatus($event)"
+        (priorityUpdate)="updateTaskPriority($event)"
+        (assigneeUpdate)="updateTaskAssignee($event)"
+      />
+    } @else {
+      <app-list-view
+        [tasks]="filteredTasks"
+        [projects]="projects"
+        [members]="members"
+        [statuses]="statuses"
+        [updatingTaskId]="updatingTaskId"
+        (edit)="editTask($event)"
+        (delete)="requestDeleteTask($event)"
+        (attachments)="openTaskAttachments($event.task, $event.event)"
+        (orderChange)="changeTaskOrder($event)"
+        (statusUpdate)="updateTaskStatus($event)"
+        (priorityUpdate)="updateTaskPriority($event)"
+        (assigneeUpdate)="updateTaskAssignee($event)"
+      />
+    }
+  </div>
+
+  @if (showStatusManager) {
+    <app-status-manager
+      [workspaceId]="currentWorkspaceId"
+      [statuses]="statuses"
+      (close)="closeStatusManager()"
+    />
+  }
 
   @if (showForm) {
     <div class="drawer-overlay" (click)="closeForm()"></div>
-
     <aside
       class="form-drawer"
       [class.dragging-files]="isDraggingFiles"
@@ -165,7 +132,6 @@
           <span class="eyebrow">TASK</span>
           <h2>{{ editingTask ? 'Edit Task' : 'Create Task' }}</h2>
         </div>
-
         <button class="close-button" type="button" [disabled]="saving" (click)="closeForm()">
           <i class="fa-solid fa-xmark"></i>
         </button>
@@ -179,14 +145,10 @@
 
         <div class="form-group">
           <label>Project</label>
-
           <select formControlName="projectId">
             <option value="">No project</option>
-
             @for (project of projects; track project.id) {
-              <option [value]="project.id">
-                {{ project.name }}
-              </option>
+              <option [value]="project.id">{{ project.name }}</option>
             }
           </select>
         </div>
@@ -207,7 +169,6 @@
               <i class="fa-solid fa-shield-halved"></i>
               {{ formatFileSize(maxFileSize) }} max per file
             </span>
-
             <span>
               <i class="fa-regular fa-images"></i>
               Images optimized automatically
@@ -217,7 +178,6 @@
           @if (remainingAttachmentSlots > 0) {
             <label class="file-picker" [class.disabled]="saving" [class.dragging]="isDraggingFiles">
               <input type="file" multiple [disabled]="saving" (change)="selectFiles($event)" />
-
               <div class="file-picker-icon">
                 @if (isDraggingFiles) {
                   <i class="fa-solid fa-file-arrow-down"></i>
@@ -225,7 +185,6 @@
                   <i class="fa-solid fa-cloud-arrow-up"></i>
                 }
               </div>
-
               <div class="file-picker-content">
                 @if (isDraggingFiles) {
                   <strong>Drop files here</strong>
@@ -240,7 +199,6 @@
                   </span>
                 }
               </div>
-
               @if (!isDraggingFiles) {
                 <i class="fa-solid fa-plus file-picker-add"></i>
               }
@@ -248,7 +206,6 @@
           } @else {
             <div class="attachment-limit-reached">
               <i class="fa-solid fa-circle-check"></i>
-
               <div>
                 <strong>Attachment limit reached</strong>
                 <span>Remove an attachment before adding another file.</span>
@@ -259,7 +216,6 @@
           @if (selectedFiles.length) {
             <div class="selected-files">
               <span class="attachment-section-title">Ready to upload</span>
-
               @for (file of selectedFiles; track file.name + file.size + file.lastModified) {
                 <div class="selected-file">
                   <div class="selected-file-icon">
@@ -269,13 +225,10 @@
                       <i class="fa-regular fa-file"></i>
                     }
                   </div>
-
                   <div class="selected-file-info">
                     <strong>{{ file.name }}</strong>
-
                     <div class="selected-file-meta">
                       <span>{{ formatFileSize(file.size) }}</span>
-
                       @if (file.type.startsWith('image/')) {
                         <span class="optimization-badge">
                           <i class="fa-solid fa-wand-magic-sparkles"></i>
@@ -284,7 +237,6 @@
                       }
                     </div>
                   </div>
-
                   <button type="button" [disabled]="saving" (click)="removeSelectedFile($index)">
                     <i class="fa-solid fa-xmark"></i>
                   </button>
@@ -296,18 +248,15 @@
           @if (editingTask && editingTask.attachments?.length) {
             <div class="existing-attachments">
               <span class="attachment-section-title">Existing files</span>
-
               @for (attachment of editingTask.attachments; track attachment.id) {
                 <div class="existing-attachment">
                   <div class="existing-attachment-icon">
                     <i [class]="getFileIcon(attachment)"></i>
                   </div>
-
                   <div class="existing-attachment-info">
                     <strong>{{ attachment.name }}</strong>
                     <span>{{ formatFileSize(attachment.size) }}</span>
                   </div>
-
                   <div class="existing-attachment-actions">
                     <button
                       type="button"
@@ -316,7 +265,6 @@
                     >
                       <i class="fa-regular fa-eye"></i>
                     </button>
-
                     <a
                       [href]="attachment.url"
                       target="_blank"
@@ -325,7 +273,6 @@
                     >
                       <i class="fa-solid fa-arrow-up-right-from-square"></i>
                     </a>
-
                     <button
                       type="button"
                       title="Remove attachment"
@@ -343,15 +290,13 @@
           @if (hasPendingAttachmentDeletions) {
             <div class="pending-deletions-notice">
               <i class="fa-solid fa-triangle-exclamation"></i>
-
               <div>
                 <strong>
                   {{ pendingAttachmentDeletionCount }}
                   {{ pendingAttachmentDeletionCount === 1 ? 'file' : 'files' }}
                   marked for deletion
                 </strong>
-
-                <span> Files will only be permanently deleted after you save. </span>
+                <span>Files will only be permanently deleted after you save.</span>
               </div>
             </div>
           }
@@ -360,18 +305,16 @@
         <div class="form-row">
           <div class="form-group">
             <label>Status</label>
-
             <select formControlName="status">
-              <option value="todo">To Do</option>
-              <option value="in-progress">In Progress</option>
-              <option value="review">Review</option>
-              <option value="completed">Completed</option>
+              @for (status of statuses; track status.id) {
+                @if (status.id) {
+                  <option [value]="status.id">{{ status.name }}</option>
+                }
+              }
             </select>
           </div>
-
           <div class="form-group">
             <label>Priority</label>
-
             <select formControlName="priority">
               <option value="low">Low</option>
               <option value="medium">Medium</option>
@@ -390,7 +333,6 @@
           <button type="button" class="secondary-button" [disabled]="saving" (click)="closeForm()">
             Cancel
           </button>
-
           <button type="submit" class="primary-button" [disabled]="saving">
             @if (saving) {
               <i class="fa-solid fa-spinner fa-spin"></i>
@@ -469,7 +411,6 @@
             {{ attachmentGalleryTask.attachments?.length === 1 ? 'file' : 'files' }}
           </p>
         </div>
-
         <button class="gallery-close" type="button" (click)="closeTaskAttachments()">
           <i class="fa-solid fa-xmark"></i>
         </button>
@@ -491,17 +432,12 @@
                   <span>{{ getFileTypeLabel(attachment) }}</span>
                 </div>
               }
-
               <span class="gallery-view-icon">
                 <i class="fa-regular fa-eye"></i>
               </span>
             </div>
-
             <div class="attachment-gallery-info">
-              <strong [title]="attachment.name">
-                {{ attachment.name }}
-              </strong>
-
+              <strong [title]="attachment.name">{{ attachment.name }}</strong>
               <span>
                 {{ getFileTypeLabel(attachment) }} ·
                 {{ formatFileSize(attachment.size) }}
@@ -522,7 +458,6 @@
           <div class="file-preview-icon">
             <i [class]="getFileIcon(previewAttachment)"></i>
           </div>
-
           <div>
             <strong>{{ previewAttachment.name }}</strong>
             <span>
@@ -531,7 +466,6 @@
             </span>
           </div>
         </div>
-
         <button type="button" class="preview-close" (click)="closeAttachmentPreview()">
           <i class="fa-solid fa-xmark"></i>
         </button>
@@ -557,7 +491,6 @@
             <div class="large-file-icon">
               <i class="fa-solid fa-file-audio"></i>
             </div>
-
             <strong>{{ previewAttachment.name }}</strong>
             <audio [src]="previewAttachment.url" controls></audio>
           </div>
@@ -566,9 +499,7 @@
             <div class="large-file-icon">
               <i [class]="getFileIcon(previewAttachment)"></i>
             </div>
-
             <strong>{{ getFileTypeLabel(previewAttachment) }} File</strong>
-
             <p>
               Quick preview is not available for this file type. You can still open the original
               file.
@@ -582,7 +513,6 @@
           <span>File size</span>
           <strong>{{ formatFileSize(previewAttachment.size) }}</strong>
         </div>
-
         <a
           class="open-full-file"
           [href]="previewAttachment.url"

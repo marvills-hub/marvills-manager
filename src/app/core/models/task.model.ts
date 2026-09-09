@@ -1,7 +1,7 @@
 import { Attachment } from './attachment.model';
 import { Priority } from './project.model';
 
-export type TaskStatus = 'todo' | 'in-progress' | 'review' | 'completed';
+export type TaskStatus = string;
 
 export interface ProjectTask {
   id?: string;
@@ -12,7 +12,10 @@ export interface ProjectTask {
   status: TaskStatus;
   priority: Priority;
   assignee?: string;
+  assigneeId?: string;
+  assigneeIds?: string[];
   dueDate?: Date;
+  order?: number;
   attachments?: Attachment[];
   createdAt?: any;
   updatedAt?: any;

@@ -1,0 +1,701 @@
+<section class="profile-page">
+  <div class="profile-layout">
+    <aside class="profile-sidebar">
+      <div class="profile-summary">
+        <div class="profile-avatar">
+          @if (photoURL) {
+            <img [src]="photoURL" [alt]="displayName + ' profile image'" />
+          } @else {
+            <span>{{ initials }}</span>
+          }
+        </div>
+        <div class="profile-identity">
+          <h2>{{ displayName }}</h2>
+          <p>{{ email }}</p>
+        </div>
+        <span class="account-status">
+          <span class="status-dot"></span>
+          Active account
+        </span>
+      </div>
+      <nav class="profile-nav">
+        <button
+          type="button"
+          [class.active]="activeTab() === 'personal'"
+          (click)="selectTab('personal')"
+        >
+          <i class="fa-regular fa-user"></i>
+          <span>
+            <strong>Personal Information</strong>
+            <small>Profile and contact details</small>
+          </span>
+        </button>
+        <button
+          type="button"
+          [class.active]="activeTab() === 'workspace'"
+          (click)="selectTab('workspace')"
+        >
+          <i class="fa-solid fa-people-group"></i>
+          <span>
+            <strong>Workspace</strong>
+            <small>Membership and role</small>
+          </span>
+        </button>
+        <button
+          type="button"
+          [class.active]="activeTab() === 'security'"
+          (click)="selectTab('security')"
+        >
+          <i class="fa-solid fa-shield-halved"></i>
+          <span>
+            <strong>Account & Security</strong>
+            <small>Login and security settings</small>
+          </span>
+        </button>
+      </nav>
+    </aside>
+    <main class="profile-content">
+      @if (activeTab() === 'personal') {
+        <div class="content-header">
+          <div>
+            <span class="section-label">PROFILE DETAILS</span>
+            <h2>Personal Information</h2>
+            <p>Your basic account and personal information.</p>
+          </div>
+          @if (!editing()) {
+            <button class="edit-button" type="button" (click)="startEditing()">
+              <i class="fa-regular fa-pen-to-square"></i>
+              Edit Profile
+            </button>
+          }
+        </div>
+        @if (successMessage()) {
+          <div class="profile-message success-message">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>{{ successMessage() }}</span>
+          </div>
+        }
+        @if (errorMessage() && !editing()) {
+          <div class="profile-message error-message">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span>{{ errorMessage() }}</span>
+          </div>
+        }
+        @if (editing()) {
+          <div class="profile-form">
+            <div class="profile-photo-card">
+              <div class="profile-photo-preview">
+                @if (editPhotoURL) {
+                  <img [src]="editPhotoURL" [alt]="displayName + ' profile image preview'" />
+                } @else {
+                  <span>{{ initials }}</span>
+                }
+              </div>
+              <div class="profile-photo-details">
+                <strong>Profile Image</strong>
+                @if (selectedProfileImage) {
+                  <p>{{ selectedProfileImage.name }}</p>
+                  <small>Preview only. Save your changes to apply this image.</small>
+                } @else {
+                  <p>Upload a JPG, PNG, or WebP image. Your photo will be resized automatically.</p>
+                  <small>Maximum source file size: 10 MB</small>
+                }
+              </div>
+              <div class="profile-photo-actions">
+                <input
+                  #profileImageInput
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  hidden
+                  (change)="onProfileImageSelected($event)"
+                />
+                <button
+                  class="photo-upload-button"
+                  type="button"
+                  [disabled]="saving()"
+                  (click)="profileImageInput.click()"
+                >
+                  <i class="fa-solid fa-camera"></i>
+                  {{ selectedProfileImage || photoURL ? 'Change Photo' : 'Upload Photo' }}
+                </button>
+                @if (selectedProfileImage) {
+                  <button
+                    class="photo-remove-button"
+                    type="button"
+                    [disabled]="saving()"
+                    (click)="undoProfileImageChange()"
+                  >
+                    <i class="fa-solid fa-rotate-left"></i>
+                    Undo
+                  </button>
+                }
+              </div>
+            </div>
+            <div class="profile-form-grid">
+              <div class="form-group">
+                <label for="displayName">Display Name</label>
+                <input
+                  id="displayName"
+                  type="text"
+                  name="displayName"
+                  maxlength="60"
+                  [(ngModel)]="editDisplayName"
+                  [disabled]="saving()"
+                  placeholder="Enter your display name"
+                />
+                <small>This name will be shown throughout Marvills Manager.</small>
+              </div>
+              <div class="form-group">
+                <label for="jobTitle">Job Title</label>
+                <input
+                  id="jobTitle"
+                  type="text"
+                  name="jobTitle"
+                  maxlength="80"
+                  [(ngModel)]="editJobTitle"
+                  [disabled]="saving()"
+                  placeholder="e.g. Software Developer"
+                />
+                <small>Your current professional role or position.</small>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="bio">Bio / About Me</label>
+              <textarea
+                id="bio"
+                name="bio"
+                rows="4"
+                maxlength="500"
+                [(ngModel)]="editBio"
+                [disabled]="saving()"
+                placeholder="Write a short description about yourself..."
+              ></textarea>
+              <small>{{ editBio.length }}/500 characters</small>
+            </div>
+            <div class="profile-form-grid">
+              <div class="form-group">
+                <label for="phone">Phone Number</label>
+                <input
+                  id="phone"
+                  type="tel"
+                  name="phone"
+                  maxlength="30"
+                  [(ngModel)]="editPhone"
+                  [disabled]="saving()"
+                  placeholder="e.g. +63 912 345 6789"
+                />
+                <small>Optional contact number.</small>
+              </div>
+              <div class="form-group">
+                <label for="location">Location</label>
+                <input
+                  id="location"
+                  type="text"
+                  name="location"
+                  maxlength="100"
+                  [(ngModel)]="editLocation"
+                  [disabled]="saving()"
+                  placeholder="e.g. Cebu, Philippines"
+                />
+                <small>City, country, or remote location.</small>
+              </div>
+            </div>
+            <div class="profile-form-grid">
+              <div class="form-group">
+                <label for="website">Website / Portfolio</label>
+                <input
+                  id="website"
+                  type="url"
+                  name="website"
+                  maxlength="250"
+                  [(ngModel)]="editWebsite"
+                  [disabled]="saving()"
+                  placeholder="https://example.com"
+                />
+                <small>Personal website, portfolio, or professional profile.</small>
+              </div>
+              <div class="form-group">
+                <label for="timezone">Timezone</label>
+                <select
+                  id="timezone"
+                  name="timezone"
+                  [(ngModel)]="editTimezone"
+                  [disabled]="saving()"
+                >
+                  @for (timezoneOption of timezones; track timezoneOption) {
+                    <option [value]="timezoneOption">{{ timezoneOption }}</option>
+                  }
+                </select>
+                <small>Used to identify your local timezone.</small>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Email Address</label>
+              <div class="readonly-field">
+                <span>{{ email }}</span>
+                <i class="fa-solid fa-lock"></i>
+              </div>
+              <small>Email changes are managed under Account & Security.</small>
+            </div>
+            @if (errorMessage()) {
+              <div class="profile-message error-message">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <span>{{ errorMessage() }}</span>
+              </div>
+            }
+            <div class="form-actions">
+              <button
+                class="cancel-button"
+                type="button"
+                [disabled]="saving()"
+                (click)="cancelEditing()"
+              >
+                Cancel
+              </button>
+              <button
+                class="save-button"
+                type="button"
+                [disabled]="saving() || !editDisplayName.trim()"
+                (click)="saveProfile()"
+              >
+                @if (saving()) {
+                  <i class="fa-solid fa-spinner fa-spin"></i>
+                  Saving...
+                } @else {
+                  <i class="fa-solid fa-check"></i>
+                  Save Changes
+                }
+              </button>
+            </div>
+          </div>
+        } @else {
+          <div class="information-grid">
+            <div class="information-item">
+              <span>Display Name</span>
+              <strong>{{ displayName }}</strong>
+            </div>
+            <div class="information-item">
+              <span>Job Title</span>
+              <strong>{{ jobTitle || 'Not provided' }}</strong>
+            </div>
+            <div class="information-item">
+              <span>Email Address</span>
+              <strong>{{ email }}</strong>
+            </div>
+            <div class="information-item">
+              <span>Phone Number</span>
+              <strong>{{ phone || 'Not provided' }}</strong>
+            </div>
+            <div class="information-item">
+              <span>Location</span>
+              <strong>{{ location || 'Not provided' }}</strong>
+            </div>
+            <div class="information-item">
+              <span>Timezone</span>
+              <strong>{{ timezone }}</strong>
+            </div>
+            <div class="information-item">
+              <span>Website / Portfolio</span>
+              @if (website) {
+                <a class="profile-link" [href]="website" target="_blank" rel="noopener noreferrer">
+                  {{ website }}
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                </a>
+              } @else {
+                <strong>Not provided</strong>
+              }
+            </div>
+            <div class="information-item">
+              <span>Email Verification</span>
+              @if (emailVerified) {
+                <strong class="verified-value">
+                  <i class="fa-solid fa-circle-check"></i>
+                  Verified
+                </strong>
+              } @else {
+                <strong class="unverified-value">
+                  <i class="fa-solid fa-circle-exclamation"></i>
+                  Not Verified
+                </strong>
+              }
+            </div>
+          </div>
+          <div class="profile-bio">
+            <div class="profile-bio-header">
+              <i class="fa-regular fa-address-card"></i>
+              <span>About Me</span>
+            </div>
+            <p>{{ bio || 'No bio has been added yet.' }}</p>
+          </div>
+          <div class="profile-note">
+            <div class="note-icon">
+              <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <div>
+              <strong>Firebase account connected</strong>
+              <p>This profile is synchronized with your authenticated Marvills Manager account.</p>
+            </div>
+          </div>
+          <div class="profile-note">
+            <div class="note-icon">
+              <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <div>
+              <strong>Firebase account connected</strong>
+              <p>This profile is synchronized with your authenticated Marvills Manager account.</p>
+            </div>
+          </div>
+        }
+      }
+      @if (activeTab() === 'workspace') {
+        <div class="content-header">
+          <div>
+            <span class="section-label">WORKSPACE MEMBERSHIP</span>
+            <h2>Workspace</h2>
+            <p>Your membership and permissions in the currently selected workspace.</p>
+          </div>
+        </div>
+        @if (workspaceService.currentWorkspace(); as workspace) {
+          <div class="workspace-card">
+            <div class="workspace-card-header">
+              <div class="workspace-icon">
+                <i class="fa-solid fa-layer-group"></i>
+              </div>
+              <div>
+                <span>Current Workspace</span>
+                <h3>{{ workspace.name }}</h3>
+              </div>
+              <span
+                class="role-badge"
+                [class.owner]="permissionService.isOwner()"
+                [class.admin]="permissionService.isAdmin()"
+                [class.member]="permissionService.isMember()"
+              >
+                {{ workspaceRole }}
+              </span>
+            </div>
+            <p class="workspace-description">{{ workspaceDescription }}</p>
+          </div>
+          <div class="workspace-information-grid">
+            <div class="workspace-information-item">
+              <div class="information-icon">
+                <i class="fa-regular fa-user"></i>
+              </div>
+              <div>
+                <span>Member Name</span>
+                <strong>{{ membershipName }}</strong>
+              </div>
+            </div>
+            <div class="workspace-information-item">
+              <div class="information-icon">
+                <i class="fa-regular fa-envelope"></i>
+              </div>
+              <div>
+                <span>Member Email</span>
+                <strong>{{ membershipEmail }}</strong>
+              </div>
+            </div>
+            <div class="workspace-information-item">
+              <div class="information-icon">
+                <i class="fa-solid fa-user-shield"></i>
+              </div>
+              <div>
+                <span>Workspace Role</span>
+                <strong>{{ workspaceRole }}</strong>
+              </div>
+            </div>
+            <div class="workspace-information-item">
+              <div class="information-icon">
+                <i class="fa-solid fa-crown"></i>
+              </div>
+              <div>
+                <span>Ownership</span>
+                <strong>{{ isWorkspaceOwner ? 'Workspace Owner' : 'Workspace Member' }}</strong>
+              </div>
+            </div>
+          </div>
+          <div class="workspace-permissions">
+            <div class="workspace-section-header">
+              <div>
+                <span>YOUR ACCESS</span>
+                <h3>Workspace Permissions</h3>
+              </div>
+            </div>
+            <div class="permission-list">
+              <div>
+                <i class="fa-solid fa-circle-check"></i>
+                <span>View workspace content</span>
+              </div>
+              <div>
+                <i class="fa-solid fa-circle-check"></i>
+                <span>Manage projects, tasks, and clients</span>
+              </div>
+              <div [class.disabled]="!permissionService.canManageMembers()">
+                <i
+                  class="fa-solid"
+                  [class.fa-circle-check]="permissionService.canManageMembers()"
+                  [class.fa-circle-xmark]="!permissionService.canManageMembers()"
+                ></i>
+                <span>Manage workspace members</span>
+              </div>
+              <div [class.disabled]="!permissionService.canManageWorkspace()">
+                <i
+                  class="fa-solid"
+                  [class.fa-circle-check]="permissionService.canManageWorkspace()"
+                  [class.fa-circle-xmark]="!permissionService.canManageWorkspace()"
+                ></i>
+                <span>Manage workspace settings</span>
+              </div>
+            </div>
+          </div>
+          <div class="workspace-actions">
+            <a routerLink="/members" class="secondary-action">
+              <i class="fa-solid fa-users"></i>
+              View Members
+            </a>
+            @if (permissionService.canManageWorkspace()) {
+              <a routerLink="/workspaces" class="primary-action">
+                <i class="fa-solid fa-gear"></i>
+                Manage Workspace
+              </a>
+            }
+          </div>
+        } @else {
+          <div class="section-empty-state">
+            <div class="empty-icon">
+              <i class="fa-solid fa-layer-group"></i>
+            </div>
+            <strong>No workspace selected</strong>
+            <p>Select or create a workspace to view your membership information.</p>
+            <a routerLink="/workspaces" class="primary-action">
+              <i class="fa-solid fa-layer-group"></i>
+              Open Workspaces
+            </a>
+          </div>
+        }
+      }
+      @if (activeTab() === 'security') {
+        <div class="content-header">
+          <div>
+            <span class="section-label">ACCOUNT PROTECTION</span>
+            <h2>Account & Security</h2>
+            <p>Manage your login credentials and account security.</p>
+          </div>
+        </div>
+        @if (securitySuccess()) {
+          <div class="profile-message success-message">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>{{ securitySuccess() }}</span>
+          </div>
+        }
+        @if (securityError()) {
+          <div class="profile-message error-message">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span>{{ securityError() }}</span>
+          </div>
+        }
+        <div class="security-section">
+          <div class="security-section-header">
+            <div class="security-icon">
+              <i class="fa-regular fa-envelope"></i>
+            </div>
+            <div>
+              <strong>Email Verification</strong>
+              <span>Confirm that you own your account email address.</span>
+            </div>
+            @if (emailVerified) {
+              <span class="security-status verified">
+                <i class="fa-solid fa-circle-check"></i>
+                Verified
+              </span>
+            } @else {
+              <span class="security-status warning">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                Not Verified
+              </span>
+            }
+          </div>
+          <div class="security-body">
+            <div>
+              <span>Email Address</span>
+              <strong>{{ email }}</strong>
+            </div>
+            @if (!emailVerified) {
+              <button
+                class="security-action-button"
+                type="button"
+                [disabled]="verificationSending()"
+                (click)="verifyEmail()"
+              >
+                @if (verificationSending()) {
+                  <i class="fa-solid fa-spinner fa-spin"></i>
+                  Sending...
+                } @else {
+                  <i class="fa-regular fa-paper-plane"></i>
+                  Send Verification Email
+                }
+              </button>
+            }
+          </div>
+        </div>
+        <div class="security-section">
+          <div class="security-section-header">
+            <div class="security-icon">
+              <i class="fa-solid fa-key"></i>
+            </div>
+            <div>
+              <strong>Password</strong>
+              <span>Update the password used to access your account.</span>
+            </div>
+            @if (!changingPassword() && passwordAccount) {
+              <button class="security-action-button" type="button" (click)="startPasswordChange()">
+                <i class="fa-solid fa-pen"></i>
+                Change Password
+              </button>
+            }
+          </div>
+          @if (passwordAccount) {
+            @if (changingPassword()) {
+              <div class="password-form">
+                <div class="form-group">
+                  <label for="currentPassword">Current Password</label>
+                  <div class="password-input">
+                    <input
+                      id="currentPassword"
+                      [type]="showCurrentPassword ? 'text' : 'password'"
+                      name="currentPassword"
+                      [(ngModel)]="currentPassword"
+                      [disabled]="passwordSaving()"
+                      autocomplete="current-password"
+                      placeholder="Enter current password"
+                    />
+                    <button
+                      type="button"
+                      tabindex="-1"
+                      (click)="showCurrentPassword = !showCurrentPassword"
+                    >
+                      <i
+                        class="fa-regular"
+                        [class.fa-eye]="!showCurrentPassword"
+                        [class.fa-eye-slash]="showCurrentPassword"
+                      ></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="password-fields">
+                  <div class="form-group">
+                    <label for="newPassword">New Password</label>
+                    <div class="password-input">
+                      <input
+                        id="newPassword"
+                        [type]="showNewPassword ? 'text' : 'password'"
+                        name="newPassword"
+                        [(ngModel)]="newPassword"
+                        [disabled]="passwordSaving()"
+                        autocomplete="new-password"
+                        placeholder="Enter new password"
+                      />
+                      <button
+                        type="button"
+                        tabindex="-1"
+                        (click)="showNewPassword = !showNewPassword"
+                      >
+                        <i
+                          class="fa-regular"
+                          [class.fa-eye]="!showNewPassword"
+                          [class.fa-eye-slash]="showNewPassword"
+                        ></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label for="confirmPassword">Confirm New Password</label>
+                    <div class="password-input">
+                      <input
+                        id="confirmPassword"
+                        [type]="showConfirmPassword ? 'text' : 'password'"
+                        name="confirmPassword"
+                        [(ngModel)]="confirmPassword"
+                        [disabled]="passwordSaving()"
+                        autocomplete="new-password"
+                        placeholder="Confirm new password"
+                      />
+                      <button
+                        type="button"
+                        tabindex="-1"
+                        (click)="showConfirmPassword = !showConfirmPassword"
+                      >
+                        <i
+                          class="fa-regular"
+                          [class.fa-eye]="!showConfirmPassword"
+                          [class.fa-eye-slash]="showConfirmPassword"
+                        ></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div class="password-hint">
+                  <i class="fa-solid fa-circle-info"></i>
+                  <span>Use at least 6 characters. A longer unique password is recommended.</span>
+                </div>
+                <div class="form-actions">
+                  <button
+                    class="cancel-button"
+                    type="button"
+                    [disabled]="passwordSaving()"
+                    (click)="cancelPasswordChange()"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    class="save-button"
+                    type="button"
+                    [disabled]="passwordSaving()"
+                    (click)="savePassword()"
+                  >
+                    @if (passwordSaving()) {
+                      <i class="fa-solid fa-spinner fa-spin"></i>
+                      Updating...
+                    } @else {
+                      <i class="fa-solid fa-shield-halved"></i>
+                      Update Password
+                    }
+                  </button>
+                </div>
+              </div>
+            } @else {
+              <div class="security-provider-note">
+                <i class="fa-solid fa-circle-info"></i>
+                <span
+                  >Password management is handled by your {{ authenticationProvider }} login
+                  provider.</span
+                >
+              </div>
+            }
+          }
+        </div>
+        <div class="security-section">
+          <div class="security-section-header">
+            <div class="security-icon">
+              <i class="fa-solid fa-fingerprint"></i>
+            </div>
+            <div>
+              <strong>Account Information</strong>
+              <span>Technical information associated with your account.</span>
+            </div>
+          </div>
+          <div class="account-information">
+            <div>
+              <span>Authentication Method</span>
+              <strong>{{ authenticationProvider }}</strong>
+            </div>
+            <div>
+              <span>Firebase User ID</span>
+              <strong class="user-id">{{ userId }}</strong>
+            </div>
+          </div>
+        </div>
+      }
+    </main>
+  </div>
+</section>

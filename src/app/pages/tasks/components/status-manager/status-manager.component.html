@@ -1,0 +1,114 @@
+<div class="status-manager-backdrop" (click)="close.emit()"></div>
+<aside class="status-manager">
+  <header class="manager-header">
+    <div>
+      <span>Task workflow</span>
+      <h2>Manage Statuses</h2>
+    </div>
+    <button type="button" class="icon-button" title="Close" (click)="close.emit()">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </header>
+  <div class="manager-content">
+    <div class="manager-info">
+      <i class="fa-solid fa-circle-info"></i>
+      <span
+        >Drag statuses to reorder your workflow. The completed status is used to determine finished
+        tasks.</span
+      >
+    </div>
+    <div
+      class="status-list"
+      cdkDropList
+      [cdkDropListData]="statuses"
+      (cdkDropListDropped)="dropStatus($event)"
+    >
+      @for (status of statuses; track status.id) {
+        <div class="status-item" cdkDrag>
+          <button type="button" class="drag-handle" cdkDragHandle title="Reorder">
+            <i class="fa-solid fa-grip-vertical"></i>
+          </button>
+          <label class="color-picker" [style.background]="status.color" title="Change color">
+            <input
+              type="color"
+              [value]="status.color"
+              (change)="updateColor(status, $any($event.target).value)"
+            />
+          </label>
+          <div class="status-name">
+            @if (editingId === status.id) {
+              <input
+                type="text"
+                [(ngModel)]="editingName"
+                maxlength="40"
+                autofocus
+                (keydown.enter)="saveName(status)"
+                (keydown.escape)="cancelEdit()"
+                (blur)="saveName(status)"
+              />
+            } @else {
+              <button
+                type="button"
+                class="name-button"
+                title="Rename status"
+                (click)="startEdit(status)"
+              >
+                {{ status.name }}
+              </button>
+            }
+          </div>
+          <button
+            type="button"
+            class="complete-button"
+            [class.active]="status.isCompleted"
+            [disabled]="savingId === status.id"
+            [title]="status.isCompleted ? 'Completed status' : 'Mark as completed status'"
+            (click)="setCompleted(status)"
+          >
+            <i class="fa-solid fa-check"></i>
+            <span>{{ status.isCompleted ? 'Complete' : 'Set complete' }}</span>
+          </button>
+          <button
+            type="button"
+            class="delete-button"
+            [disabled]="deletingId === status.id || statuses.length <= 1"
+            title="Delete status"
+            (click)="deleteStatus(status)"
+          >
+            @if (deletingId === status.id) {
+              <i class="fa-solid fa-spinner fa-spin"></i>
+            } @else {
+              <i class="fa-solid fa-trash"></i>
+            }
+          </button>
+        </div>
+      }
+    </div>
+    <div class="add-status">
+      <div class="add-status-title">
+        <span>Add Status</span>
+        <small>{{ statuses.length }} statuses</small>
+      </div>
+      <div class="add-status-form">
+        <label class="color-picker large" [style.background]="newStatusColor">
+          <input type="color" [(ngModel)]="newStatusColor" />
+        </label>
+        <input
+          type="text"
+          [(ngModel)]="newStatusName"
+          maxlength="40"
+          placeholder="Status name"
+          (keydown.enter)="addStatus()"
+        />
+        <button type="button" [disabled]="!newStatusName.trim() || adding" (click)="addStatus()">
+          @if (adding) {
+            <i class="fa-solid fa-spinner fa-spin"></i>
+          } @else {
+            <i class="fa-solid fa-plus"></i>
+          }
+          Add
+        </button>
+      </div>
+    </div>
+  </div>
+</aside>

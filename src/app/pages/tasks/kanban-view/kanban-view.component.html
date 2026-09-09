@@ -1,0 +1,250 @@
+<div class="kanban-board">
+  @for (status of statuses; track status.id) {
+    <section class="kanban-column" [attr.data-status]="getStatusValue(status)">
+      <div class="column-header">
+        <div>
+          <span class="column-dot" [style.background]="status.color"></span>
+          <strong>{{ status.name }}</strong>
+        </div>
+        <span>{{ getTasksForStatus(status).length }}</span>
+      </div>
+      <div
+        class="task-drop-zone"
+        cdkDropList
+        [cdkDropListData]="getTasksForStatus(status)"
+        cdkDropListOrientation="vertical"
+        (cdkDropListDropped)="drop($event, status)"
+      >
+        @for (task of getTasksForStatus(status); track task.id) {
+          <ng-container
+            *ngTemplateOutlet="taskTemplate; context: { $implicit: task }"
+          ></ng-container>
+        }
+        @if (!getTasksForStatus(status).length) {
+          <div class="empty-column">
+            <div class="empty-column-icon">
+              <i class="fa-solid fa-arrow-down"></i>
+            </div>
+            <strong>No tasks here</strong>
+            <span>Drop a task here</span>
+          </div>
+        }
+      </div>
+    </section>
+  }
+
+  @if (!statuses.length) {
+    <div class="empty-board">
+      <i class="fa-solid fa-table-columns"></i>
+      <strong>No task statuses</strong>
+      <span>Create a status to start organizing tasks.</span>
+    </div>
+  }
+</div>
+
+<ng-template #taskTemplate let-task>
+  <article
+    class="task-card"
+    cdkDrag
+    [cdkDragData]="task"
+    [cdkDragDisabled]="updatingTaskId === task.id"
+    (cdkDragEnded)="dragEnded($event, task)"
+  >
+    <div class="task-card-top">
+      <div class="task-title-row">
+        <h3 [title]="task.title">{{ task.title }}</h3>
+        <div class="inline-dropdown priority-dropdown" (click)="$event.stopPropagation()">
+          <button
+            type="button"
+            class="priority priority-button"
+            [ngClass]="task.priority"
+            [disabled]="updatingTaskId === task.id"
+            (click)="togglePriorityMenu(task, $event)"
+          >
+            {{ task.priority }}
+            @if (updatingTaskId === task.id) {
+              <i class="fa-solid fa-spinner fa-spin"></i>
+            } @else {
+              <i class="fa-solid fa-chevron-down"></i>
+            }
+          </button>
+          @if (openPriorityTaskId === task.id) {
+            <div class="inline-menu priority-menu">
+              @for (priority of priorities; track priority.value) {
+                <button
+                  type="button"
+                  [class.active]="task.priority === priority.value"
+                  (click)="selectPriority(task, priority.value, $event)"
+                >
+                  <span class="menu-priority-dot" [ngClass]="priority.value"></span>
+                  <span>{{ priority.label }}</span>
+                  @if (task.priority === priority.value) {
+                    <i class="fa-solid fa-check"></i>
+                  }
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </div>
+      <div class="task-actions">
+        <button type="button" title="Edit task" (click)="editTask(task, $event)">
+          <i class="fa-solid fa-pen"></i>
+        </button>
+        <button type="button" title="Delete task" (click)="deleteTask(task, $event)">
+          <i class="fa-regular fa-trash-can"></i>
+        </button>
+      </div>
+    </div>
+    <p class="task-description" [title]="task.description || 'No description'">
+      {{ task.description || 'No description' }}
+    </p>
+    <div class="task-meta-row">
+      <span class="project-name" [title]="getProjectName(task.projectId)">
+        <i class="fa-regular fa-folder"></i>
+        <span>{{ getProjectName(task.projectId) }}</span>
+      </span>
+      <div class="inline-dropdown status-dropdown" (click)="$event.stopPropagation()">
+        <button
+          type="button"
+          class="status-button"
+          [disabled]="updatingTaskId === task.id"
+          (click)="toggleStatusMenu(task, $event)"
+        >
+          <span class="status-dot" [style.background]="getStatusColor(task.status)"></span>
+          <span>{{ getStatusLabel(task.status) }}</span>
+          @if (updatingTaskId === task.id) {
+            <i class="fa-solid fa-spinner fa-spin"></i>
+          } @else {
+            <i class="fa-solid fa-chevron-down"></i>
+          }
+        </button>
+        @if (openStatusTaskId === task.id) {
+          <div class="inline-menu status-menu">
+            @for (status of statuses; track status.id) {
+              <button
+                type="button"
+                [class.active]="task.status === getStatusValue(status)"
+                (click)="selectStatus(task, status, $event)"
+              >
+                <span class="menu-status-dot" [style.background]="status.color"></span>
+                <span>{{ status.name }}</span>
+                @if (task.status === getStatusValue(status)) {
+                  <i class="fa-solid fa-check"></i>
+                }
+              </button>
+            }
+          </div>
+        }
+      </div>
+    </div>
+    @if (task.attachments?.length) {
+      <button
+        type="button"
+        class="task-attachments-summary"
+        (click)="openAttachments(task, $event)"
+      >
+        <div>
+          <i class="fa-solid fa-paperclip"></i>
+          <span>
+            {{ task.attachments?.length }}
+            {{ task.attachments?.length === 1 ? 'attachment' : 'attachments' }}
+          </span>
+        </div>
+        <span class="attachment-view">
+          View
+          <i class="fa-regular fa-eye"></i>
+        </span>
+      </button>
+    }
+    <div class="task-footer">
+      <div class="inline-dropdown assignee-dropdown" (click)="$event.stopPropagation()">
+        <button
+          type="button"
+          class="assignee-button"
+          [disabled]="updatingTaskId === task.id"
+          [title]="getAssigneeNames(task)"
+          (click)="toggleAssigneeMenu(task, $event)"
+        >
+          @if (getAssigneeCount(task)) {
+            <span class="assignee-stack">
+              @for (member of getVisibleAssignees(task); track member.userId) {
+                <span class="assignee" [title]="getMemberName(member)">
+                  @if (member.photoURL) {
+                    <img [src]="member.photoURL" [alt]="getMemberName(member)" />
+                  } @else {
+                    {{ getMemberInitial(member) }}
+                  }
+                </span>
+              }
+              @if (getAdditionalAssigneeCount(task) > 0) {
+                <span class="assignee-more">+{{ getAdditionalAssigneeCount(task) }}</span>
+              }
+            </span>
+          } @else {
+            <span class="assignee empty-assignee" title="Unassigned">
+              <i class="fa-solid fa-user-slash"></i>
+            </span>
+          }
+          @if (updatingTaskId === task.id) {
+            <i class="fa-solid fa-spinner fa-spin assignee-chevron"></i>
+          } @else {
+            <i class="fa-solid fa-chevron-down assignee-chevron"></i>
+          }
+        </button>
+        @if (openAssigneeTaskId === task.id) {
+          <div class="inline-menu assignee-menu">
+            <div class="assignee-menu-header">
+              @if (getAssigneeCount(task)) {
+                <span>{{ getAssigneeCount(task) }} selected</span>
+              }
+            </div>
+            @if (getAssigneeCount(task)) {
+              <button type="button" class="clear-assignees" (click)="clearAssignees(task, $event)">
+                <span class="member-avatar empty-avatar">
+                  <i class="fa-solid fa-user-slash"></i>
+                </span>
+                <span class="member-name">Clear assignees</span>
+              </button>
+            }
+            <div class="assignee-member-list">
+              @for (member of members; track member.userId) {
+                <button
+                  type="button"
+                  [class.active]="isAssigned(task, member.userId)"
+                  (click)="toggleTaskAssignee(task, member.userId, $event)"
+                >
+                  <span class="member-avatar">
+                    @if (member.photoURL) {
+                      <img [src]="member.photoURL" [alt]="getMemberName(member)" />
+                    } @else {
+                      {{ getMemberInitial(member) }}
+                    }
+                  </span>
+                  <span class="member-name">{{ getMemberName(member) }}</span>
+                  <span class="assignee-checkbox" [class.checked]="isAssigned(task, member.userId)">
+                    @if (isAssigned(task, member.userId)) {
+                      <i class="fa-solid fa-check"></i>
+                    }
+                  </span>
+                </button>
+              }
+              @if (!members.length) {
+                <div class="no-members">
+                  <i class="fa-regular fa-user"></i>
+                  <span>No workspace members</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+      @if (task.dueDate) {
+        <span>
+          <i class="fa-regular fa-calendar"></i>
+          {{ getTaskDueDate(task.dueDate) | date: 'MMM d' }}
+        </span>
+      }
+    </div>
+  </article>
+</ng-template>

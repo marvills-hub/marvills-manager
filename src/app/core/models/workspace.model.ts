@@ -3,6 +3,7 @@ export interface Workspace {
   name: string;
   description?: string;
   ownerId: string;
+  taskStatusesInitialized?: boolean;
   createdAt?: any;
   updatedAt?: any;
 }
