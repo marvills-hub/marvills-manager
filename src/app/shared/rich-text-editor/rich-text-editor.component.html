@@ -1,0 +1,139 @@
+<div class="editor-overlay" (click)="close()" (keydown)="handleKeydown($event)">
+  <section class="editor-modal" (click)="$event.stopPropagation()">
+    <div class="editor-header">
+      <div>
+        <span>PROJECT DESCRIPTION</span>
+        <h2>Rich Text Editor</h2>
+      </div>
+      <button type="button" class="close-button" [disabled]="disabled" (click)="close()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="editor-toolbar">
+      <div class="toolbar-group">
+        <button type="button" title="Bold" [disabled]="disabled" (click)="format('bold')">
+          <i class="fa-solid fa-bold"></i>
+        </button>
+        <button type="button" title="Italic" [disabled]="disabled" (click)="format('italic')">
+          <i class="fa-solid fa-italic"></i>
+        </button>
+        <button type="button" title="Underline" [disabled]="disabled" (click)="format('underline')">
+          <i class="fa-solid fa-underline"></i>
+        </button>
+        <button
+          type="button"
+          title="Strikethrough"
+          [disabled]="disabled"
+          (click)="format('strikeThrough')"
+        >
+          <i class="fa-solid fa-strikethrough"></i>
+        </button>
+      </div>
+
+      <span class="toolbar-divider"></span>
+
+      <div class="toolbar-group">
+        <button type="button" title="Heading" [disabled]="disabled" (click)="setBlock('h2')">
+          <i class="fa-solid fa-heading"></i>
+        </button>
+        <button type="button" title="Subheading" [disabled]="disabled" (click)="setBlock('h3')">
+          H3
+        </button>
+        <button type="button" title="Paragraph" [disabled]="disabled" (click)="setBlock('p')">
+          <i class="fa-solid fa-paragraph"></i>
+        </button>
+      </div>
+
+      <span class="toolbar-divider"></span>
+
+      <div class="toolbar-group">
+        <button
+          type="button"
+          title="Bulleted List"
+          [disabled]="disabled"
+          (click)="format('insertUnorderedList')"
+        >
+          <i class="fa-solid fa-list-ul"></i>
+        </button>
+        <button
+          type="button"
+          title="Numbered List"
+          [disabled]="disabled"
+          (click)="format('insertOrderedList')"
+        >
+          <i class="fa-solid fa-list-ol"></i>
+        </button>
+      </div>
+
+      <span class="toolbar-divider"></span>
+
+      <div class="toolbar-group">
+        <button
+          type="button"
+          title="Align Left"
+          [disabled]="disabled"
+          (click)="format('justifyLeft')"
+        >
+          <i class="fa-solid fa-align-left"></i>
+        </button>
+        <button
+          type="button"
+          title="Align Center"
+          [disabled]="disabled"
+          (click)="format('justifyCenter')"
+        >
+          <i class="fa-solid fa-align-center"></i>
+        </button>
+        <button
+          type="button"
+          title="Align Right"
+          [disabled]="disabled"
+          (click)="format('justifyRight')"
+        >
+          <i class="fa-solid fa-align-right"></i>
+        </button>
+      </div>
+
+      <span class="toolbar-divider"></span>
+
+      <div class="toolbar-group">
+        <button type="button" title="Add Link" [disabled]="disabled" (click)="createLink()">
+          <i class="fa-solid fa-link"></i>
+        </button>
+        <button type="button" title="Remove Link" [disabled]="disabled" (click)="removeLink()">
+          <i class="fa-solid fa-link-slash"></i>
+        </button>
+        <button
+          type="button"
+          title="Clear Formatting"
+          [disabled]="disabled"
+          (click)="clearFormatting()"
+        >
+          <i class="fa-solid fa-eraser"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="editor-workspace">
+      <div
+        #editor
+        class="editor-content"
+        [attr.contenteditable]="disabled ? 'false' : 'true'"
+        [attr.data-placeholder]="placeholder"
+        (input)="onInput()"
+      ></div>
+    </div>
+
+    <div class="editor-footer">
+      <div class="editor-hint">
+        <i class="fa-regular fa-circle-check"></i>
+        Changes are synchronized with the project description
+      </div>
+      <button type="button" class="done-button" [disabled]="disabled" (click)="close()">
+        <i class="fa-solid fa-check"></i>
+        Done
+      </button>
+    </div>
+  </section>
+</div>

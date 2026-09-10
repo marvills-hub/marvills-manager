@@ -2,32 +2,26 @@
   <button class="mobile-menu-button" type="button" (click)="menuToggle.emit()">
     <i class="fa-solid fa-bars"></i>
   </button>
-
   <div class="topbar-main">
     @if (topbarService.projectContext(); as project) {
       <div class="project-context">
         <a routerLink="/projects" class="project-back-button" title="Back to projects">
           <i class="fa-solid fa-arrow-left"></i>
         </a>
-
         <div class="project-context-content">
           <div class="project-context-title">
             <strong>{{ project.name }}</strong>
-
             <span class="project-status" [class]="project.status">
               <span class="status-dot"></span>
               {{ project.status }}
             </span>
           </div>
-
           <div class="project-context-meta">
             <span>
               <i class="fa-regular fa-building"></i>
               {{ project.clientName }}
             </span>
-
             <span class="meta-divider"></span>
-
             <span class="project-priority" [class]="project.priority">
               <i class="fa-solid fa-flag"></i>
               {{ project.priority }} priority
@@ -40,23 +34,39 @@
         <div class="page-context-icon">
           <i [class]="page.icon || 'fa-regular fa-file'"></i>
         </div>
-
         <div class="page-context-content">
           <strong>{{ page.title }}</strong>
           <span>{{ page.description }}</span>
         </div>
+        @if (page.action) {
+          @if (page.action.route) {
+            <a class="page-context-action" [routerLink]="page.action.route">
+              @if (page.action.icon) {
+                <i [class]="page.action.icon"></i>
+              }
+              <span>{{ page.action.label }}</span>
+            </a>
+          } @else {
+            <button
+              class="page-context-action"
+              type="button"
+              (click)="topbarService.runPageAction()"
+            >
+              @if (page.action.icon) {
+                <i [class]="page.action.icon"></i>
+              }
+              <span>{{ page.action.label }}</span>
+            </button>
+          }
+        }
       </div>
     }
-
     <div class="search-box">
       <i class="fa-solid fa-magnifying-glass"></i>
-
       <input type="text" placeholder="Search projects or tasks..." />
-
       <span class="shortcut">Ctrl K</span>
     </div>
   </div>
-
   <div class="topbar-actions">
     <button class="action-button" type="button" (click)="themeService.toggleTheme()">
       @if (themeService.theme() === 'dark') {
@@ -65,12 +75,10 @@
         <i class="fa-regular fa-moon"></i>
       }
     </button>
-
     <button class="action-button notification" type="button">
       <i class="fa-regular fa-bell"></i>
       <span></span>
     </button>
-
     <a routerLink="/profile" class="user" title="Open profile">
       <div class="user-avatar">
         @if (photoURL) {

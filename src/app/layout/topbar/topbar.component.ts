@@ -18,8 +18,7 @@ export class TopbarComponent {
   readonly topbarService = inject(TopbarService);
   readonly permissionService = inject(WorkspacePermissionService);
 
-  @Output()
-  menuToggle = new EventEmitter<void>();
+  @Output() menuToggle = new EventEmitter<void>();
 
   get user() {
     return this.authService.currentUser;
@@ -31,21 +30,15 @@ export class TopbarComponent {
 
   get initials(): string {
     const name = this.displayName.trim();
-    if (!name) {
-      return 'MU';
-    }
+    if (!name) return 'MU';
     const parts = name.split(/\s+/).filter(Boolean);
-    if (parts.length === 1) {
-      return parts[0].substring(0, 2).toUpperCase();
-    }
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
     return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
   }
 
   get workspaceRole(): string {
     const role = this.permissionService.role();
-    if (!role) {
-      return 'Workspace Member';
-    }
+    if (!role) return 'Workspace Member';
     return role.charAt(0).toUpperCase() + role.slice(1);
   }
 

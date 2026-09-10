@@ -7,10 +7,18 @@ export interface TopbarProjectContext {
   priority: string;
 }
 
+export interface TopbarPageAction {
+  label: string;
+  icon?: string;
+  route?: string;
+  handler?: () => void;
+}
+
 export interface TopbarPageContext {
   title: string;
   description: string;
   icon?: string;
+  action?: TopbarPageAction;
 }
 
 @Injectable({
@@ -21,6 +29,7 @@ export class TopbarService {
   readonly pageContext = signal<TopbarPageContext | null>(null);
 
   setProjectContext(context: TopbarProjectContext): void {
+    this.pageContext.set(null);
     this.projectContext.set(context);
   }
 
@@ -29,10 +38,15 @@ export class TopbarService {
   }
 
   setPageContext(context: TopbarPageContext): void {
+    this.projectContext.set(null);
     this.pageContext.set(context);
   }
 
   clearPageContext(): void {
     this.pageContext.set(null);
+  }
+
+  runPageAction(): void {
+    this.pageContext()?.action?.handler?.();
   }
 }

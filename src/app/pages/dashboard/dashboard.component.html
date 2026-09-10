@@ -1,35 +1,11 @@
 <section class="dashboard">
-  <div class="page-header">
-    <div>
-      <span class="eyebrow"> OVERVIEW </span>
-
-      <h1>Dashboard</h1>
-
-      <p>Keep track of your projects, tasks, and deadlines.</p>
-    </div>
-
-    <a class="primary-button" routerLink="/projects">
-      <i class="fa-solid fa-plus"></i>
-
-      New Project
-    </a>
-  </div>
-
   <div class="stats-grid">
     <article class="stat-card">
       <div>
-        <span> Total Projects </span>
-
-        <strong>
-          {{ totalProjects }}
-        </strong>
-
-        <small>
-          {{ activeProjects }}
-          currently active
-        </small>
+        <span>Total Projects</span>
+        <strong>{{ totalProjects }}</strong>
+        <small>{{ activeProjects }} currently active</small>
       </div>
-
       <div class="stat-icon blue">
         <i class="fa-regular fa-folder"></i>
       </div>
@@ -37,15 +13,10 @@
 
     <article class="stat-card">
       <div>
-        <span> Completed Tasks </span>
-
-        <strong>
-          {{ completedTasks }}
-        </strong>
-
-        <small class="green-text"> Finished tasks </small>
+        <span>Completed Tasks</span>
+        <strong>{{ completedTasks }}</strong>
+        <small class="green-text">Finished tasks</small>
       </div>
-
       <div class="stat-icon green">
         <i class="fa-solid fa-check"></i>
       </div>
@@ -53,15 +24,10 @@
 
     <article class="stat-card">
       <div>
-        <span> In Progress </span>
-
-        <strong>
-          {{ inProgressTasks }}
-        </strong>
-
-        <small> Current workload </small>
+        <span>In Progress</span>
+        <strong>{{ inProgressTasks }}</strong>
+        <small>Current workload</small>
       </div>
-
       <div class="stat-icon orange">
         <i class="fa-solid fa-bolt"></i>
       </div>
@@ -69,15 +35,10 @@
 
     <article class="stat-card">
       <div>
-        <span> Overdue </span>
-
-        <strong>
-          {{ overdueTasks }}
-        </strong>
-
-        <small class="red-text"> Needs attention </small>
+        <span>Overdue</span>
+        <strong>{{ overdueTasks }}</strong>
+        <small class="red-text">Needs attention</small>
       </div>
-
       <div class="stat-icon red">
         <i class="fa-solid fa-triangle-exclamation"></i>
       </div>
@@ -89,11 +50,9 @@
       <div class="panel-header">
         <div>
           <h2>Active Projects</h2>
-
           <p>Your current project progress.</p>
         </div>
-
-        <a routerLink="/projects"> View all </a>
+        <a routerLink="/projects">View all</a>
       </div>
 
       <div class="project-list">
@@ -102,35 +61,24 @@
             <div class="project-icon">
               <i class="fa-regular fa-folder"></i>
             </div>
-
             <div class="project-info">
               <div class="project-title">
                 <div>
-                  <strong>
-                    {{ project.name }}
-                  </strong>
-
-                  <span>
-                    {{ project.clientName || 'Personal Project' }}
-                  </span>
+                  <strong>{{ project.name }}</strong>
+                  <span>{{ project.clientName || 'Personal Project' }}</span>
                 </div>
-
-                <strong> {{ project.progress }}% </strong>
+                <strong>{{ project.progress }}%</strong>
               </div>
-
               <div class="progress-track">
                 <div class="progress-value" [style.width.%]="project.progress"></div>
               </div>
             </div>
           </article>
         }
-
         @if (recentProjects.length === 0) {
           <div class="empty-state">
             <i class="fa-regular fa-folder-open"></i>
-
-            <strong> No projects yet </strong>
-
+            <strong>No projects yet</strong>
             <p>Create your first project to get started.</p>
           </div>
         }
@@ -141,40 +89,28 @@
       <div class="panel-header">
         <div>
           <h2>Current Tasks</h2>
-
           <p>Work requiring your attention.</p>
         </div>
-
-        <a routerLink="/tasks"> View board </a>
+        <a routerLink="/tasks">View board</a>
       </div>
 
       <div class="task-list">
         @for (task of activeTasks; track task.id) {
           <article class="task-row">
             <div class="task-status" [class]="task.priority"></div>
-
             <div>
-              <strong>
-                {{ task.title }}
-              </strong>
-
-              <span>
-                {{ task.status }}
-              </span>
+              <strong>{{ task.title }}</strong>
+              <span>{{ task.status }}</span>
             </div>
-
             <span class="priority-badge" [class]="task.priority">
               {{ task.priority }}
             </span>
           </article>
         }
-
         @if (activeTasks.length === 0) {
           <div class="empty-state">
             <i class="fa-regular fa-circle-check"></i>
-
-            <strong> You're all clear </strong>
-
+            <strong>You're all clear</strong>
             <p>There are no active tasks.</p>
           </div>
         }

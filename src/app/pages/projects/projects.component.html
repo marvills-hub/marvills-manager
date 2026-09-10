@@ -1,52 +1,88 @@
 <section class="projects-page">
-  <div class="page-header">
-    <div>
-      <span class="eyebrow">WORKSPACE</span>
-      <h1>Projects</h1>
-      <p>Manage all your active and upcoming projects.</p>
+  <div class="projects-toolbar">
+    <div class="toolbar-left">
+      <div class="project-search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input
+          type="text"
+          placeholder="Search projects..."
+          [value]="searchQuery"
+          (input)="searchProjects($event)"
+        />
+        @if (searchQuery) {
+          <button type="button" title="Clear search" (click)="clearProjectSearch()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        }
+      </div>
+      <div class="project-filter">
+        <i class="fa-solid fa-filter"></i>
+        <select [value]="statusFilter" (change)="changeStatusFilter($event)">
+          <option value="all">All Statuses</option>
+          <option value="planning">Planning</option>
+          <option value="in-progress">In Progress</option>
+          <option value="on-hold">On Hold</option>
+          <option value="completed">Completed</option>
+          <option value="overdue">Overdue</option>
+        </select>
+      </div>
+      <span class="project-count">
+        {{ filteredProjects.length }}
+        {{ filteredProjects.length === 1 ? 'project' : 'projects' }}
+      </span>
     </div>
-
-    <button class="primary-button" type="button" (click)="openCreateForm()">
-      <i class="fa-solid fa-plus"></i>
-      New Project
-    </button>
+    <div class="toolbar-actions">
+      <button class="primary-button" type="button" (click)="openCreateForm()">
+        <i class="fa-solid fa-plus"></i>
+        New Project
+      </button>
+    </div>
   </div>
-
   <div class="projects-grid">
     @for (project of filteredProjects; track project.id) {
-      <article class="project-card">
+      <article class="project-card" [class.overdue-card]="isProjectOverdue(project)">
         <div class="project-card-header">
-          <div class="project-icon">
-            <i class="fa-regular fa-folder"></i>
+          <div class="project-header-left">
+            <div class="project-logo">
+              @if (project.logoURL) {
+                <img [src]="project.logoURL" [alt]="project.name + ' logo'" />
+              } @else {
+                <i class="fa-regular fa-folder"></i>
+              }
+            </div>
+            <div class="project-chips">
+              <span class="status" [class]="getProjectDisplayStatus(project)">
+                {{ getProjectStatusLabel(project) }}
+              </span>
+              <span class="priority" [class]="project.priority">
+                {{ project.priority }}
+              </span>
+            </div>
           </div>
-
           <div class="card-actions">
-            <button type="button" (click)="editProject(project)">
+            <button
+              class="edit-action"
+              type="button"
+              title="Edit project"
+              (click)="editProject(project)"
+            >
               <i class="fa-solid fa-pen"></i>
             </button>
-
-            <button type="button" (click)="requestDeleteProject(project)">
+            <button
+              class="delete-action"
+              type="button"
+              title="Delete project"
+              (click)="requestDeleteProject(project)"
+            >
               <i class="fa-regular fa-trash-can"></i>
             </button>
           </div>
         </div>
-
         <div class="project-content">
-          <span class="status" [class]="project.status">
-            {{ project.status }}
-          </span>
-
           <h3>{{ project.name }}</h3>
-
-          <span class="client-name">
-            {{ project.clientName || 'Personal Project' }}
-          </span>
-
-          <p>
-            {{ project.description || 'No project description.' }}
-          </p>
+          <span class="client-name">{{ project.clientName || 'Personal Project' }}</span>
+          <p>{{ project.description || 'No project description.' }}</p>
         </div>
-
         @if (project.attachments?.length) {
           <button
             type="button"
@@ -55,419 +91,100 @@
           >
             <div>
               <i class="fa-solid fa-paperclip"></i>
-
               <span>
                 {{ project.attachments?.length }}
                 {{ project.attachments?.length === 1 ? 'attachment' : 'attachments' }}
               </span>
             </div>
-
             <span class="attachment-view">
               Quick View
-
               <i class="fa-regular fa-eye"></i>
             </span>
           </button>
         }
-
         <div class="project-progress">
           <div class="progress-header">
             <span>Progress</span>
             <strong>{{ project.progress }}%</strong>
           </div>
-
           <div class="progress-track">
             <div class="progress-value" [style.width.%]="project.progress"></div>
           </div>
         </div>
-
-        <div class="project-footer">
-          <span class="priority" [class]="project.priority">
-            {{ project.priority }}
-          </span>
-
+        <div class="project-footer" [class.overdue]="isProjectOverdue(project)">
           @if (project.dueDate) {
             <span>
               <i class="fa-regular fa-calendar"></i>
-              {{ project.dueDate | date: 'MMM d' }}
+              @if (isProjectOverdue(project)) {
+                Overdue · {{ project.dueDate | date: 'MMM d' }}
+              } @else {
+                Due {{ project.dueDate | date: 'MMM d' }}
+              }
             </span>
           }
         </div>
-
         <a class="open-project" [routerLink]="['/projects', project.id]">
           Open Project
           <i class="fa-solid fa-arrow-right"></i>
         </a>
       </article>
     }
-
     @if (projects.length === 0) {
       <div class="empty-projects">
         <i class="fa-regular fa-folder-open"></i>
-
         <h3>No projects yet</h3>
-
         <p>Create your first project and start managing your work.</p>
-
         <button class="primary-button" type="button" (click)="openCreateForm()">
           Create Project
         </button>
       </div>
     }
-  </div>
-
-  @if (showForm) {
-    <div class="drawer-overlay" (click)="closeForm()"></div>
-
-    <aside
-      class="form-drawer"
-      [class.dragging-files]="isDraggingFiles"
-      (dragenter)="onDragEnter($event)"
-      (dragover)="onDragOver($event)"
-      (dragleave)="onDragLeave($event)"
-      (drop)="onDrop($event)"
-    >
-      <div class="drawer-header">
-        <div>
-          <span class="eyebrow">PROJECT</span>
-
-          <h2>
-            {{ editingProject ? 'Edit Project' : 'New Project' }}
-          </h2>
-        </div>
-
-        <button class="close-button" type="button" [disabled]="saving" (click)="closeForm()">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
+    @if (projects.length > 0 && filteredProjects.length === 0) {
+      <div class="empty-projects">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <h3>No matching projects</h3>
+        <p>Try changing your search or status filter.</p>
       </div>
-
-      <form [formGroup]="projectForm" (ngSubmit)="saveProject()">
-        <div class="form-group">
-          <label>Project Name</label>
-
-          <input type="text" formControlName="name" placeholder="Website redesign" />
-        </div>
-
-        <div class="form-group">
-          <label>Client</label>
-
-          <input type="text" formControlName="clientName" placeholder="Client name" />
-        </div>
-
-        <div class="form-group">
-          <label>Description</label>
-
-          <textarea
-            rows="4"
-            formControlName="description"
-            placeholder="Project description..."
-          ></textarea>
-        </div>
-
-        <div class="form-group">
-          <div class="attachment-label">
-            <label>Attachments</label>
-
-            <span>
-              {{ totalAttachmentCount }} /
-              {{ maxAttachments }}
-            </span>
-          </div>
-
-          <div class="attachment-limits">
-            <span>
-              <i class="fa-solid fa-shield-halved"></i>
-
-              {{ formatFileSize(maxFileSize) }}
-              max per file
-            </span>
-
-            <span>
-              <i class="fa-regular fa-images"></i>
-
-              Images optimized automatically
-            </span>
-          </div>
-
-          @if (remainingAttachmentSlots > 0) {
-            <label class="file-picker" [class.disabled]="saving" [class.dragging]="isDraggingFiles">
-              <input type="file" multiple [disabled]="saving" (change)="selectFiles($event)" />
-
-              <div class="file-picker-icon">
-                @if (isDraggingFiles) {
-                  <i class="fa-solid fa-file-arrow-down"></i>
-                } @else {
-                  <i class="fa-solid fa-cloud-arrow-up"></i>
-                }
-              </div>
-
-              <div class="file-picker-content">
-                @if (isDraggingFiles) {
-                  <strong>Drop files here</strong>
-
-                  <span> Release to add files to this project </span>
-                } @else {
-                  <strong>Add files</strong>
-
-                  <span>
-                    Drag files here or click to browse · {{ remainingAttachmentSlots }}
-                    {{ remainingAttachmentSlots === 1 ? 'slot' : 'slots' }}
-                    remaining
-                  </span>
-                }
-              </div>
-
-              @if (!isDraggingFiles) {
-                <i class="fa-solid fa-plus file-picker-add"></i>
-              }
-            </label>
-          } @else {
-            <div class="attachment-limit-reached">
-              <i class="fa-solid fa-circle-check"></i>
-
-              <div>
-                <strong> Attachment limit reached </strong>
-
-                <span> Remove an attachment before adding another file. </span>
-              </div>
-            </div>
-          }
-
-          @if (selectedFiles.length) {
-            <div class="selected-files">
-              <span class="attachment-section-title"> Ready to upload </span>
-
-              @for (file of selectedFiles; track file.name + file.size + file.lastModified) {
-                <div class="selected-file">
-                  <div class="selected-file-icon">
-                    @if (file.type.startsWith('image/')) {
-                      <i class="fa-regular fa-image"></i>
-                    } @else {
-                      <i class="fa-regular fa-file"></i>
-                    }
-                  </div>
-
-                  <div class="selected-file-info">
-                    <strong>
-                      {{ file.name }}
-                    </strong>
-
-                    <div class="selected-file-meta">
-                      <span>
-                        {{ formatFileSize(file.size) }}
-                      </span>
-
-                      @if (file.type.startsWith('image/')) {
-                        <span class="optimization-badge">
-                          <i class="fa-solid fa-wand-magic-sparkles"></i>
-                          Optimize on upload
-                        </span>
-                      }
-                    </div>
-                  </div>
-
-                  <button type="button" [disabled]="saving" (click)="removeSelectedFile($index)">
-                    <i class="fa-solid fa-xmark"></i>
-                  </button>
-                </div>
-              }
-            </div>
-          }
-
-          @if (editingProject && editingProject.attachments?.length) {
-            <div class="existing-attachments">
-              <span class="attachment-section-title"> Existing files </span>
-
-              @for (attachment of editingProject.attachments; track attachment.id) {
-                <div class="existing-attachment">
-                  <div class="existing-attachment-icon">
-                    <i [class]="getFileIcon(attachment)"></i>
-                  </div>
-
-                  <div class="existing-attachment-info">
-                    <strong>
-                      {{ attachment.name }}
-                    </strong>
-
-                    <span>
-                      {{ formatFileSize(attachment.size) }}
-                    </span>
-                  </div>
-
-                  <div class="existing-attachment-actions">
-                    <a
-                      [href]="attachment.url"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="Open attachment"
-                    >
-                      <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                    </a>
-
-                    <button
-                      type="button"
-                      title="Remove attachment"
-                      [disabled]="saving"
-                      (click)="requestRemoveExistingAttachment(attachment)"
-                    >
-                      <i class="fa-regular fa-trash-can"></i>
-                    </button>
-                  </div>
-                </div>
-              }
-            </div>
-          }
-
-          @if (hasPendingAttachmentDeletions) {
-            <div class="pending-deletions-notice">
-              <i class="fa-solid fa-triangle-exclamation"></i>
-
-              <div>
-                <strong>
-                  {{ pendingAttachmentDeletionCount }}
-                  {{ pendingAttachmentDeletionCount === 1 ? 'file' : 'files' }}
-                  marked for deletion
-                </strong>
-
-                <span> Files will only be permanently deleted after you save your changes. </span>
-              </div>
-            </div>
-          }
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label>Status</label>
-
-            <select formControlName="status">
-              <option value="planning">Planning</option>
-              <option value="active">Active</option>
-              <option value="on-hold">On Hold</option>
-              <option value="completed">Completed</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label>Priority</label>
-
-            <select formControlName="priority">
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="urgent">Urgent</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Progress</label>
-
-          <input type="number" min="0" max="100" formControlName="progress" />
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label>Start Date</label>
-
-            <input type="date" formControlName="startDate" />
-          </div>
-
-          <div class="form-group">
-            <label>Due Date</label>
-
-            <input type="date" formControlName="dueDate" />
-          </div>
-        </div>
-
-        <div class="form-actions">
-          <button type="button" class="secondary-button" [disabled]="saving" (click)="closeForm()">
-            Cancel
-          </button>
-
-          <button class="primary-button" type="submit" [disabled]="saving">
-            @if (saving) {
-              <i class="fa-solid fa-spinner fa-spin"></i>
-
-              {{ selectedFiles.length ? 'Uploading...' : 'Saving...' }}
-            } @else {
-              {{ editingProject ? 'Save Changes' : 'Create Project' }}
-            }
-          </button>
-        </div>
-      </form>
-    </aside>
-  }
-
-  @if (removeAttachmentDialogOpen) {
-    <app-confirmation-dialog
-      title="Remove Attachment?"
-      [message]="
-        'Remove ' +
-        (attachmentPendingRemoval?.name || 'this file') +
-        ' from this project? The file will not be permanently deleted until you save your changes.'
-      "
-      confirmText="Remove"
-      cancelText="Keep File"
-      type="danger"
-      (confirmed)="confirmRemoveExistingAttachment()"
-      (cancelled)="cancelConfirmation()"
-    />
-  }
-
-  @if (saveAttachmentChangesDialogOpen) {
-    <app-confirmation-dialog
-      title="Save Attachment Changes?"
-      [message]="
-        pendingAttachmentDeletionCount === 1
-          ? 'You marked 1 attachment for deletion. Saving these changes will permanently delete the file from storage.'
-          : 'You marked ' +
-            pendingAttachmentDeletionCount +
-            ' attachments for deletion. Saving these changes will permanently delete these files from storage.'
-      "
-      confirmText="Save & Delete"
-      cancelText="Go Back"
-      type="warning"
-      [loading]="saving"
-      (confirmed)="confirmSaveAttachmentChanges()"
-      (cancelled)="cancelConfirmation()"
-    />
-  }
-
-  @if (deleteProjectDialogOpen) {
-    <app-confirmation-dialog
-      title="Delete Project?"
-      [message]="
-        'Delete ' +
-        (projectPendingDeletion?.name || 'this project') +
-        '? The project and all of its uploaded attachments will be permanently deleted.'
-      "
-      confirmText="Delete Project"
-      cancelText="Keep Project"
-      type="danger"
-      [loading]="deletingProject"
-      (confirmed)="confirmDeleteProject()"
-      (cancelled)="cancelConfirmation()"
-    />
-  }
+    }
+  </div>
 </section>
+
+<app-project-form-drawer
+  [open]="drawerOpen"
+  [project]="drawerProject"
+  (closed)="closeProjectDrawer()"
+  (saved)="projectSaved()"
+/>
+
+@if (projectPendingDeletion) {
+  <app-confirmation-dialog
+    title="Delete Project?"
+    [message]="
+      'Delete ' +
+      projectPendingDeletion.name +
+      '? The project, logo and all uploaded attachments will be permanently deleted.'
+    "
+    confirmText="Delete Project"
+    cancelText="Keep Project"
+    type="danger"
+    [loading]="deletingProject"
+    (confirmed)="confirmDeleteProject()"
+    (cancelled)="cancelDeleteProject()"
+  />
+}
 
 @if (attachmentGalleryProject) {
   <div class="attachment-gallery-overlay" (click)="closeProjectAttachments()">
     <section class="attachment-gallery-modal" (click)="$event.stopPropagation()">
       <div class="attachment-gallery-header">
         <div>
-          <span class="eyebrow"> ATTACHMENTS </span>
-
-          <h2>
-            {{ attachmentGalleryProject.name }}
-          </h2>
-
+          <span class="eyebrow">ATTACHMENTS</span>
+          <h2>{{ attachmentGalleryProject.name }}</h2>
           <p>
             {{ attachmentGalleryProject.attachments?.length || 0 }}
             {{ attachmentGalleryProject.attachments?.length === 1 ? 'file' : 'files' }}
           </p>
         </div>
-
         <button
           type="button"
           class="gallery-close"
@@ -477,7 +194,6 @@
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
-
       <div class="attachment-gallery-grid">
         @for (attachment of attachmentGalleryProject.attachments; track attachment.id) {
           <button
@@ -491,28 +207,18 @@
               } @else {
                 <div class="gallery-file-icon">
                   <i [class]="getFileIcon(attachment)"></i>
-
-                  <span>
-                    {{ getFileTypeLabel(attachment) }}
-                  </span>
+                  <span>{{ getFileTypeLabel(attachment) }}</span>
                 </div>
               }
-
               <span class="gallery-view-icon">
                 <i class="fa-regular fa-eye"></i>
               </span>
             </div>
-
             <div class="attachment-gallery-info">
-              <strong [title]="attachment.name">
-                {{ attachment.name }}
-              </strong>
-
-              <span>
-                {{ getFileTypeLabel(attachment) }}
-                ·
-                {{ formatFileSize(attachment.size) }}
-              </span>
+              <strong [title]="attachment.name">{{ attachment.name }}</strong>
+              <span
+                >{{ getFileTypeLabel(attachment) }} · {{ formatFileSize(attachment.size) }}</span
+              >
             </div>
           </button>
         }
@@ -529,20 +235,14 @@
           <div class="file-preview-icon">
             <i [class]="getFileIcon(previewAttachment)"></i>
           </div>
-
           <div>
-            <strong [title]="previewAttachment.name">
-              {{ previewAttachment.name }}
-            </strong>
-
-            <span>
-              {{ getFileTypeLabel(previewAttachment) }}
-              ·
-              {{ formatFileSize(previewAttachment.size) }}
-            </span>
+            <strong [title]="previewAttachment.name">{{ previewAttachment.name }}</strong>
+            <span
+              >{{ getFileTypeLabel(previewAttachment) }} ·
+              {{ formatFileSize(previewAttachment.size) }}</span
+            >
           </div>
         </div>
-
         <button
           type="button"
           class="preview-close"
@@ -552,7 +252,6 @@
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
-
       <div class="file-preview-body">
         @if (isImage(previewAttachment)) {
           <div class="image-preview">
@@ -573,11 +272,7 @@
             <div class="large-file-icon">
               <i class="fa-solid fa-file-audio"></i>
             </div>
-
-            <strong>
-              {{ previewAttachment.name }}
-            </strong>
-
+            <strong>{{ previewAttachment.name }}</strong>
             <audio [src]="previewAttachment.url" controls></audio>
           </div>
         } @else if (isText(previewAttachment)) {
@@ -591,12 +286,7 @@
             <div class="large-file-icon">
               <i [class]="getFileIcon(previewAttachment)"></i>
             </div>
-
-            <strong>
-              {{ getFileTypeLabel(previewAttachment) }}
-              File
-            </strong>
-
+            <strong>{{ getFileTypeLabel(previewAttachment) }} File</strong>
             <p>
               Quick preview is not available for this file type. You can still open the original
               file.
@@ -604,16 +294,11 @@
           </div>
         }
       </div>
-
       <div class="file-preview-footer">
         <div>
           <span>File size</span>
-
-          <strong>
-            {{ formatFileSize(previewAttachment.size) }}
-          </strong>
+          <strong>{{ formatFileSize(previewAttachment.size) }}</strong>
         </div>
-
         <a
           [href]="previewAttachment.url"
           target="_blank"
@@ -621,7 +306,6 @@
           class="open-full-file"
         >
           <i class="fa-solid fa-arrow-up-right-from-square"></i>
-
           Open Full File
         </a>
       </div>

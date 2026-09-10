@@ -28,42 +28,26 @@ export class ProjectService {
   getProjects(): Observable<Project[]> {
     return this.workspaceService.currentWorkspace$.pipe(
       switchMap((workspace) => {
-        if (!workspace?.id) {
-          return of([]);
-        }
-
+        if (!workspace?.id) return of([]);
         const projectsRef = collection(this.firestore, 'projects');
-
         const projectsQuery = query(projectsRef, where('workspaceId', '==', workspace.id));
-
-        return collectionData(projectsQuery, {
-          idField: 'id',
-        }) as Observable<Project[]>;
+        return collectionData(projectsQuery, { idField: 'id' }) as Observable<Project[]>;
       }),
     );
   }
 
   getProject(id: string): Observable<Project> {
     const projectRef = doc(this.firestore, `projects/${id}`);
-
-    return docData(projectRef, {
-      idField: 'id',
-    }) as Observable<Project>;
+    return docData(projectRef, { idField: 'id' }) as Observable<Project>;
   }
 
   createProject(project: Omit<Project, 'workspaceId'>): Promise<DocumentReference> {
     const workspace = this.workspaceService.currentWorkspace();
-
-    if (!workspace?.id) {
-      throw new Error('No workspace selected.');
-    }
-
+    if (!workspace?.id) throw new Error('No workspace selected.');
     const projectsRef = collection(this.firestore, 'projects');
-
     const cleanProject = Object.fromEntries(
       Object.entries(project).filter(([, value]) => value !== undefined),
     );
-
     return addDoc(projectsRef, {
       ...cleanProject,
       workspaceId: workspace.id,
@@ -76,18 +60,33 @@ export class ProjectService {
     const cleanProject = Object.fromEntries(
       Object.entries(project).filter(([, value]) => value !== undefined),
     );
-
     const projectRef = doc(this.firestore, `projects/${id}`);
-
     return updateDoc(projectRef, {
       ...cleanProject,
       updatedAt: serverTimestamp(),
     });
   }
 
+  updateProjectLogo(projectId: string, logoURL: string, logoPath: string): Promise<void> {
+    const projectRef = doc(this.firestore, `projects/${projectId}`);
+    return updateDoc(projectRef, {
+      logoURL,
+      logoPath,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  removeProjectLogo(projectId: string): Promise<void> {
+    const projectRef = doc(this.firestore, `projects/${projectId}`);
+    return updateDoc(projectRef, {
+      logoURL: '',
+      logoPath: '',
+      updatedAt: serverTimestamp(),
+    });
+  }
+
   updateAttachments(projectId: string, attachments: Attachment[]): Promise<void> {
     const projectRef = doc(this.firestore, `projects/${projectId}`);
-
     return updateDoc(projectRef, {
       attachments,
       updatedAt: serverTimestamp(),
@@ -100,13 +99,42 @@ export class ProjectService {
     attachments: Attachment[],
   ): Promise<void> {
     const remainingAttachments = attachments.filter((attachment) => attachment.id !== attachmentId);
-
     return this.updateAttachments(projectId, remainingAttachments);
   }
 
   deleteProject(id: string): Promise<void> {
     const projectRef = doc(this.firestore, `projects/${id}`);
-
     return deleteDoc(projectRef);
+  }
+
+  isOverdue(project: Project): boolean {
+    if (!project.dueDate || project.status === 'completed') return false;
+    const dueDate = this.toDate(project.dueDate);
+    if (!dueDate) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    dueDate.setHours(0, 0, 0, 0);
+    return dueDate < today;
+  }
+
+  getDisplayStatus(project: Project): string {
+    if (this.isOverdue(project)) return 'overdue';
+    return project.status;
+  }
+
+  getStatusLabel(project: Project): string {
+    const status = this.getDisplayStatus(project);
+    if (status === 'in-progress') return 'In Progress';
+    if (status === 'on-hold') return 'On Hold';
+    if (status === 'overdue') return 'Overdue';
+    if (status === 'completed') return 'Completed';
+    return 'Planning';
+  }
+
+  private toDate(value: any): Date | null {
+    if (!value) return null;
+    if (value?.toDate) return value.toDate();
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
   }
 }

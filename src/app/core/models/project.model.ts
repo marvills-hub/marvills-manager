@@ -1,7 +1,6 @@
 import { Attachment } from './attachment.model';
 
-export type ProjectStatus = 'planning' | 'active' | 'on-hold' | 'completed';
-
+export type ProjectStatus = 'planning' | 'in-progress' | 'on-hold' | 'completed';
 export type Priority = 'low' | 'medium' | 'high' | 'urgent';
 
 export interface Project {
@@ -10,6 +9,8 @@ export interface Project {
   name: string;
   description?: string;
   clientName?: string;
+  logoURL?: string;
+  logoPath?: string;
   status: ProjectStatus;
   priority: Priority;
   progress: number;

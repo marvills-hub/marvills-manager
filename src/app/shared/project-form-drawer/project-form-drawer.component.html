@@ -1,0 +1,370 @@
+@if (open) {
+  <div class="drawer-overlay" (click)="close()"></div>
+  <aside
+    class="form-drawer"
+    [class.dragging-files]="isDraggingFiles"
+    (dragenter)="onDragEnter($event)"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave($event)"
+    (drop)="onDrop($event)"
+  >
+    <div class="drawer-header">
+      <div>
+        <span class="eyebrow">PROJECT</span>
+        <h2>{{ editingProject ? 'Edit Project' : 'New Project' }}</h2>
+      </div>
+      <button class="close-button" type="button" [disabled]="saving" (click)="close()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <form [formGroup]="projectForm" (ngSubmit)="saveProject()">
+      <div class="drawer-content">
+        <div class="form-group">
+          <label>Project Logo</label>
+          <div class="project-logo-editor">
+            <div class="project-logo-preview">
+              @if (logoPreview) {
+                <img [src]="logoPreview" alt="Selected project logo" />
+              } @else if (editingProject?.logoURL && !removeExistingLogo) {
+                <img [src]="editingProject?.logoURL" [alt]="editingProject?.name + ' logo'" />
+              } @else {
+                <i class="fa-regular fa-folder"></i>
+              }
+            </div>
+            <div class="project-logo-controls">
+              <strong>
+                @if (logoPreview) {
+                  New project logo
+                } @else if (editingProject?.logoURL && !removeExistingLogo) {
+                  Current project logo
+                } @else {
+                  Default project icon
+                }
+              </strong>
+              <span>JPG, PNG or WebP · Maximum 5 MB</span>
+              <div class="logo-actions">
+                <label class="logo-upload-button" [class.disabled]="saving">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    [disabled]="saving"
+                    (change)="selectLogo($event)"
+                  />
+                  <i class="fa-regular fa-image"></i>
+                  {{ editingProject?.logoURL || selectedLogo ? 'Change Logo' : 'Upload Logo' }}
+                </label>
+                @if (selectedLogo) {
+                  <button
+                    type="button"
+                    class="logo-remove-button"
+                    [disabled]="saving"
+                    (click)="clearSelectedLogo()"
+                  >
+                    <i class="fa-solid fa-xmark"></i>
+                    Cancel
+                  </button>
+                } @else if (editingProject?.logoURL && !removeExistingLogo) {
+                  <button
+                    type="button"
+                    class="logo-remove-button"
+                    [disabled]="saving"
+                    (click)="requestRemoveLogo()"
+                  >
+                    <i class="fa-regular fa-trash-can"></i>
+                    Remove
+                  </button>
+                } @else if (editingProject?.logoURL && removeExistingLogo) {
+                  <button
+                    type="button"
+                    class="logo-restore-button"
+                    [disabled]="saving"
+                    (click)="restoreExistingLogo()"
+                  >
+                    <i class="fa-solid fa-rotate-left"></i>
+                    Restore
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Project Name</label>
+          <input type="text" formControlName="name" placeholder="Website redesign" />
+        </div>
+        <div class="form-group">
+          <label>Client</label>
+          <input type="text" formControlName="clientName" placeholder="Client name" />
+        </div>
+        <div class="form-group">
+          <div class="description-label">
+            <div>
+              <label>Description</label>
+              <span>Plain text editor</span>
+            </div>
+            <button type="button" [disabled]="saving" (click)="openRichEditor()">
+              <i class="fa-solid fa-wand-magic-sparkles"></i>
+              Rich Editor
+            </button>
+          </div>
+          <textarea
+            rows="5"
+            formControlName="description"
+            placeholder="Project description..."
+          ></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Status</label>
+            <select formControlName="status">
+              <option value="planning">Planning</option>
+              <option value="in-progress">In Progress</option>
+              <option value="on-hold">On Hold</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Priority</label>
+            <select formControlName="priority">
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="urgent">Urgent</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="progress-label">
+            <label>Progress</label>
+            <span>{{ projectForm.controls.progress.value }}%</span>
+          </div>
+          <div class="progress-editor">
+            <input
+              class="progress-slider"
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              [value]="projectForm.controls.progress.value"
+              (input)="onProgressSliderChange($event)"
+            />
+            <div class="progress-number">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                formControlName="progress"
+                (change)="onProgressInput($event)"
+              />
+              <span>%</span>
+            </div>
+          </div>
+          <div class="progress-editor-track">
+            <div
+              class="progress-editor-value"
+              [style.width.%]="projectForm.controls.progress.value"
+            ></div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Start Date</label>
+            <input type="date" formControlName="startDate" />
+          </div>
+          <div class="form-group">
+            <label>End Date</label>
+            <input type="date" formControlName="dueDate" />
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="attachment-label">
+            <label>Attachments</label>
+            <span>{{ totalAttachmentCount }} / {{ maxAttachments }}</span>
+          </div>
+          <div class="attachment-limits">
+            <span>
+              <i class="fa-solid fa-shield-halved"></i>
+              {{ formatFileSize(maxFileSize) }} max per file
+            </span>
+            <span>
+              <i class="fa-regular fa-images"></i>
+              Images optimized automatically
+            </span>
+          </div>
+          @if (remainingAttachmentSlots > 0) {
+            <label class="file-picker" [class.disabled]="saving" [class.dragging]="isDraggingFiles">
+              <input type="file" multiple [disabled]="saving" (change)="selectFiles($event)" />
+              <div class="file-picker-icon">
+                @if (isDraggingFiles) {
+                  <i class="fa-solid fa-file-arrow-down"></i>
+                } @else {
+                  <i class="fa-solid fa-cloud-arrow-up"></i>
+                }
+              </div>
+              <div class="file-picker-content">
+                @if (isDraggingFiles) {
+                  <strong>Drop files here</strong>
+                  <span>Release to add files to this project</span>
+                } @else {
+                  <strong>Add files</strong>
+                  <span>
+                    Drag files here or click to browse · {{ remainingAttachmentSlots }}
+                    {{ remainingAttachmentSlots === 1 ? 'slot' : 'slots' }} remaining
+                  </span>
+                }
+              </div>
+              @if (!isDraggingFiles) {
+                <i class="fa-solid fa-plus file-picker-add"></i>
+              }
+            </label>
+          } @else {
+            <div class="attachment-limit-reached">
+              <i class="fa-solid fa-circle-check"></i>
+              <div>
+                <strong>Attachment limit reached</strong>
+                <span>Remove an attachment before adding another file.</span>
+              </div>
+            </div>
+          }
+          @if (selectedFiles.length) {
+            <div class="selected-files">
+              <span class="attachment-section-title">Ready to upload</span>
+              @for (file of selectedFiles; track file.name + file.size + file.lastModified) {
+                <div class="selected-file">
+                  <div class="selected-file-icon">
+                    @if (file.type.startsWith('image/')) {
+                      <i class="fa-regular fa-image"></i>
+                    } @else {
+                      <i class="fa-regular fa-file"></i>
+                    }
+                  </div>
+                  <div class="selected-file-info">
+                    <strong>{{ file.name }}</strong>
+                    <div class="selected-file-meta">
+                      <span>{{ formatFileSize(file.size) }}</span>
+                      @if (file.type.startsWith('image/')) {
+                        <span class="optimization-badge">
+                          <i class="fa-solid fa-wand-magic-sparkles"></i>
+                          Optimize on upload
+                        </span>
+                      }
+                    </div>
+                  </div>
+                  <button type="button" [disabled]="saving" (click)="removeSelectedFile($index)">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+              }
+            </div>
+          }
+          @if (editingProject && editingProject.attachments?.length) {
+            <div class="existing-attachments">
+              <span class="attachment-section-title">Existing files</span>
+              @for (attachment of editingProject.attachments; track attachment.id) {
+                <div class="existing-attachment">
+                  <div class="existing-attachment-icon">
+                    <i [class]="getFileIcon(attachment)"></i>
+                  </div>
+                  <div class="existing-attachment-info">
+                    <strong>{{ attachment.name }}</strong>
+                    <span>{{ formatFileSize(attachment.size) }}</span>
+                  </div>
+                  <div class="existing-attachment-actions">
+                    <a
+                      [href]="attachment.url"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Open attachment"
+                    >
+                      <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    </a>
+                    <button
+                      type="button"
+                      title="Remove attachment"
+                      [disabled]="saving"
+                      (click)="requestRemoveExistingAttachment(attachment)"
+                    >
+                      <i class="fa-regular fa-trash-can"></i>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+          @if (hasPendingAttachmentDeletions) {
+            <div class="pending-deletions-notice">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              <div>
+                <strong>
+                  {{ pendingAttachmentDeletionCount }}
+                  {{ pendingAttachmentDeletionCount === 1 ? 'file' : 'files' }}
+                  marked for deletion
+                </strong>
+                <span>Files will only be permanently deleted after you save your changes.</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="secondary-button" [disabled]="saving" (click)="close()">
+          Cancel
+        </button>
+        <button class="primary-button" type="submit" [disabled]="saving">
+          @if (saving) {
+            <i class="fa-solid fa-spinner fa-spin"></i>
+            {{ selectedLogo || selectedFiles.length ? 'Uploading...' : 'Saving...' }}
+          } @else {
+            {{ editingProject ? 'Save Changes' : 'Create Project' }}
+          }
+        </button>
+      </div>
+    </form>
+  </aside>
+}
+
+@if (richEditorOpen) {
+  <app-rich-text-editor
+    [value]="projectForm.controls.description.value"
+    [disabled]="saving"
+    placeholder="Write the project description..."
+    (valueChange)="updateDescription($event)"
+    (closed)="closeRichEditor()"
+  />
+}
+
+@if (removeAttachmentDialogOpen) {
+  <app-confirmation-dialog
+    title="Remove Attachment?"
+    [message]="
+      'Remove ' +
+      (attachmentPendingRemoval?.name || 'this file') +
+      ' from this project? The file will not be permanently deleted until you save your changes.'
+    "
+    confirmText="Remove"
+    cancelText="Keep File"
+    type="danger"
+    (confirmed)="confirmRemoveExistingAttachment()"
+    (cancelled)="cancelConfirmation()"
+  />
+}
+
+@if (saveAttachmentChangesDialogOpen) {
+  <app-confirmation-dialog
+    title="Save Attachment Changes?"
+    [message]="
+      pendingAttachmentDeletionCount === 1
+        ? 'You marked 1 attachment for deletion. Saving these changes will permanently delete the file from storage.'
+        : 'You marked ' +
+          pendingAttachmentDeletionCount +
+          ' attachments for deletion. Saving these changes will permanently delete these files from storage.'
+    "
+    confirmText="Save & Delete"
+    cancelText="Go Back"
+    type="warning"
+    [loading]="saving"
+    (confirmed)="confirmSaveAttachmentChanges()"
+    (cancelled)="cancelConfirmation()"
+  />
+}

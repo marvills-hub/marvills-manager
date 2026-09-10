@@ -1,299 +1,106 @@
-import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { Project } from '../../core/models/project.model';
+import { RouterLink } from '@angular/router';
 import { Attachment } from '../../core/models/attachment.model';
-import { ProjectService } from '../../core/services/project.service';
+import { Project } from '../../core/models/project.model';
 import { AttachmentService } from '../../core/services/attachment.service';
-import { WorkspaceService } from '../../core/services/workspace.service';
+import { ProjectLogoService } from '../../core/services/project-logo.service';
+import { ProjectService } from '../../core/services/project.service';
 import { ToastService } from '../../core/services/toast.service';
+import { TopbarService } from '../../core/services/top-bar.service';
 import { ConfirmationDialogComponent } from '../../shared/confirmation-dialog/confirmation-dialog.component';
-
-type ProjectConfirmationAction =
-  | 'remove-attachment'
-  | 'save-attachment-changes'
-  | 'delete-project'
-  | null;
+import { ProjectFormDrawerComponent } from '../../shared/project-form-drawer/project-form-drawer.component';
 
 @Component({
   selector: 'app-projects',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, ConfirmationDialogComponent],
+  imports: [CommonModule, RouterLink, ConfirmationDialogComponent, ProjectFormDrawerComponent],
   templateUrl: './projects.component.html',
   styleUrl: './projects.component.scss',
 })
-export class ProjectsComponent implements OnInit {
-  private fb = inject(FormBuilder);
+export class ProjectsComponent implements OnInit, OnDestroy {
   private projectService = inject(ProjectService);
+  private projectLogoService = inject(ProjectLogoService);
   private attachmentService = inject(AttachmentService);
-  private workspaceService = inject(WorkspaceService);
   private toast = inject(ToastService);
   private sanitizer = inject(DomSanitizer);
+  private readonly topbarService = inject(TopbarService);
 
   projects: Project[] = [];
-  selectedFiles: File[] = [];
-  pendingAttachmentDeletions: Attachment[] = [];
-
-  showForm = false;
-  editingProject: Project | null = null;
-  originalEditingProject: Project | null = null;
-
   searchQuery = '';
-  saving = false;
+  statusFilter = 'all';
+  drawerOpen = false;
+  drawerProject: Project | null = null;
   deletingProject = false;
-  isDraggingFiles = false;
-
-  confirmationAction: ProjectConfirmationAction = null;
-  attachmentPendingRemoval: Attachment | null = null;
   projectPendingDeletion: Project | null = null;
-
   attachmentGalleryProject: Project | null = null;
   previewAttachment: Attachment | null = null;
 
-  readonly maxAttachments = this.attachmentService.maxFiles;
-  readonly maxFileSize = this.attachmentService.maxFileSize;
-
-  projectForm = this.fb.nonNullable.group({
-    name: ['', Validators.required],
-    clientName: [''],
-    description: [''],
-    status: ['planning' as Project['status']],
-    priority: ['medium' as Project['priority']],
-    progress: [0],
-    startDate: [''],
-    dueDate: [''],
-  });
-
   ngOnInit(): void {
+    this.topbarService.setPageContext({
+      title: 'Projects',
+      description: 'Manage all your active and upcoming projects.',
+      icon: 'fa-regular fa-folder',
+    });
     this.projectService.getProjects().subscribe((projects) => {
       this.projects = projects;
+      this.refreshOpenProject(projects);
     });
+  }
+
+  ngOnDestroy(): void {
+    this.topbarService.clearPageContext();
   }
 
   openCreateForm(): void {
-    this.editingProject = null;
-    this.originalEditingProject = null;
-    this.selectedFiles = [];
-    this.pendingAttachmentDeletions = [];
-    this.isDraggingFiles = false;
-    this.resetConfirmation();
-
-    this.projectForm.reset({
-      name: '',
-      clientName: '',
-      description: '',
-      status: 'planning',
-      priority: 'medium',
-      progress: 0,
-      startDate: '',
-      dueDate: '',
-    });
-
-    this.showForm = true;
+    this.drawerProject = null;
+    this.drawerOpen = true;
   }
 
   editProject(project: Project): void {
-    this.originalEditingProject = {
-      ...project,
-      attachments: [...(project.attachments ?? [])],
-    };
-
-    this.editingProject = {
-      ...project,
-      attachments: [...(project.attachments ?? [])],
-    };
-
-    this.selectedFiles = [];
-    this.pendingAttachmentDeletions = [];
-    this.isDraggingFiles = false;
-    this.resetConfirmation();
-
-    this.projectForm.patchValue({
-      name: project.name,
-      clientName: project.clientName || '',
-      description: project.description || '',
-      status: project.status,
-      priority: project.priority,
-      progress: project.progress || 0,
-      startDate: this.formatDate(project.startDate),
-      dueDate: this.formatDate(project.dueDate),
-    });
-
-    this.showForm = true;
+    this.drawerProject = project;
+    this.drawerOpen = true;
   }
 
-  selectFiles(event: Event): void {
-    const input = event.target as HTMLInputElement;
-
-    if (!input.files?.length) {
-      return;
-    }
-
-    this.addFiles(Array.from(input.files));
-    input.value = '';
+  closeProjectDrawer(): void {
+    this.drawerOpen = false;
+    this.drawerProject = null;
   }
 
-  onDragOver(event: DragEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-
-    if (this.saving || this.remainingAttachmentSlots <= 0) {
-      if (event.dataTransfer) {
-        event.dataTransfer.dropEffect = 'none';
-      }
-
-      return;
-    }
-
-    this.isDraggingFiles = true;
-
-    if (event.dataTransfer) {
-      event.dataTransfer.dropEffect = 'copy';
-    }
-  }
-
-  onDragEnter(event: DragEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-
-    if (this.saving || this.remainingAttachmentSlots <= 0) {
-      return;
-    }
-
-    this.isDraggingFiles = true;
-  }
-
-  onDragLeave(event: DragEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const currentTarget = event.currentTarget as HTMLElement;
-    const relatedTarget = event.relatedTarget as Node | null;
-
-    if (relatedTarget && currentTarget.contains(relatedTarget)) {
-      return;
-    }
-
-    this.isDraggingFiles = false;
-  }
-
-  onDrop(event: DragEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-
-    this.isDraggingFiles = false;
-
-    if (this.saving || this.remainingAttachmentSlots <= 0 || !event.dataTransfer?.files.length) {
-      return;
-    }
-
-    this.addFiles(Array.from(event.dataTransfer.files));
-    event.dataTransfer.clearData();
-  }
-
-  removeSelectedFile(index: number): void {
-    if (this.saving) {
-      return;
-    }
-
-    this.selectedFiles.splice(index, 1);
-  }
-
-  requestRemoveExistingAttachment(attachment: Attachment): void {
-    if (this.saving) {
-      return;
-    }
-
-    this.attachmentPendingRemoval = attachment;
-    this.confirmationAction = 'remove-attachment';
-  }
-
-  confirmRemoveExistingAttachment(): void {
-    const attachment = this.attachmentPendingRemoval;
-
-    if (!attachment || !this.editingProject) {
-      this.resetConfirmation();
-      return;
-    }
-
-    const alreadyPending = this.pendingAttachmentDeletions.some(
-      (item) => item.id === attachment.id,
-    );
-
-    if (!alreadyPending) {
-      this.pendingAttachmentDeletions.push(attachment);
-    }
-
-    this.editingProject = {
-      ...this.editingProject,
-      attachments: (this.editingProject.attachments ?? []).filter(
-        (item) => item.id !== attachment.id,
-      ),
-    };
-
-    this.resetConfirmation();
-  }
-
-  saveProject(): void {
-    if (this.projectForm.invalid || this.saving) {
-      this.projectForm.markAllAsTouched();
-      return;
-    }
-
-    if (this.pendingAttachmentDeletions.length) {
-      this.confirmationAction = 'save-attachment-changes';
-      return;
-    }
-
-    void this.performSave();
-  }
-
-  confirmSaveAttachmentChanges(): void {
-    this.resetConfirmation();
-    void this.performSave();
+  projectSaved(): void {
+    this.closeProjectDrawer();
   }
 
   requestDeleteProject(project: Project): void {
-    if (!project.id || this.deletingProject) {
-      return;
-    }
-
+    if (!project.id || this.deletingProject) return;
     this.projectPendingDeletion = project;
-    this.confirmationAction = 'delete-project';
   }
 
   async confirmDeleteProject(): Promise<void> {
     const project = this.projectPendingDeletion;
-
-    if (!project?.id || this.deletingProject) {
-      return;
-    }
-
+    if (!project?.id || this.deletingProject) return;
     this.deletingProject = true;
-
     try {
-      const attachments = project.attachments ?? [];
-
-      for (const attachment of attachments) {
+      for (const attachment of project.attachments ?? []) {
         try {
           await this.attachmentService.deleteAttachment(attachment);
         } catch (error) {
-          if (!this.isStorageObjectNotFound(error)) {
-            throw error;
-          }
+          if (!this.isStorageObjectNotFound(error)) throw error;
         }
       }
-
+      if (project.logoPath) {
+        try {
+          await this.projectLogoService.deleteLogo(project.logoPath);
+        } catch (error) {
+          if (!this.isStorageObjectNotFound(error)) throw error;
+        }
+      }
       await this.projectService.deleteProject(project.id);
-
-      this.toast.success('Project and its attachments deleted successfully.');
-
-      this.resetConfirmation();
+      this.toast.success('Project and its files deleted successfully.');
+      this.projectPendingDeletion = null;
     } catch (error) {
       console.error('Unable to delete project:', error);
-
       this.toast.error(
         'Unable to delete the project completely. The project was kept so you can try again.',
       );
@@ -302,11 +109,13 @@ export class ProjectsComponent implements OnInit {
     }
   }
 
-  openProjectAttachments(project: Project): void {
-    if (!project.attachments?.length) {
-      return;
-    }
+  cancelDeleteProject(): void {
+    if (this.deletingProject) return;
+    this.projectPendingDeletion = null;
+  }
 
+  openProjectAttachments(project: Project): void {
+    if (!project.attachments?.length) return;
     this.attachmentGalleryProject = project;
     this.previewAttachment = null;
   }
@@ -343,7 +152,6 @@ export class ProjectsComponent implements OnInit {
   isText(attachment: Attachment): boolean {
     const type = attachment.type?.toLowerCase() ?? '';
     const name = attachment.name.toLowerCase();
-
     return (
       type.startsWith('text/') ||
       type.includes('json') ||
@@ -361,48 +169,13 @@ export class ProjectsComponent implements OnInit {
     );
   }
 
-  canPreview(attachment: Attachment): boolean {
-    return (
-      this.isImage(attachment) ||
-      this.isPdf(attachment) ||
-      this.isVideo(attachment) ||
-      this.isAudio(attachment) ||
-      this.isText(attachment)
-    );
-  }
-
   getSafeResourceUrl(attachment: Attachment): SafeResourceUrl {
     return this.sanitizer.bypassSecurityTrustResourceUrl(attachment.url);
   }
 
   getFileTypeLabel(attachment: Attachment): string {
-    const name = attachment.name.toLowerCase();
-
-    if (name.includes('.')) {
-      const extension = name.split('.').pop();
-
-      if (extension) {
-        return extension.toUpperCase();
-      }
-    }
-
-    return 'FILE';
-  }
-
-  cancelConfirmation(): void {
-    if (this.saving || this.deletingProject) {
-      return;
-    }
-
-    this.resetConfirmation();
-  }
-
-  closeForm(): void {
-    if (this.saving) {
-      return;
-    }
-
-    this.resetForm();
+    const extension = attachment.name.toLowerCase().split('.').pop();
+    return extension && attachment.name.includes('.') ? extension.toUpperCase() : 'FILE';
   }
 
   formatFileSize(size: number): string {
@@ -413,274 +186,54 @@ export class ProjectsComponent implements OnInit {
     return this.attachmentService.getFileIcon(attachment);
   }
 
-  get existingAttachmentCount(): number {
-    return this.editingProject?.attachments?.length ?? 0;
+  getProjectDisplayStatus(project: Project): string {
+    return this.projectService.getDisplayStatus(project);
   }
 
-  get totalAttachmentCount(): number {
-    return this.existingAttachmentCount + this.selectedFiles.length;
+  getProjectStatusLabel(project: Project): string {
+    return this.projectService.getStatusLabel(project);
   }
 
-  get remainingAttachmentSlots(): number {
-    return Math.max(0, this.maxAttachments - this.totalAttachmentCount);
-  }
-
-  get hasPendingAttachmentDeletions(): boolean {
-    return this.pendingAttachmentDeletions.length > 0;
-  }
-
-  get pendingAttachmentDeletionCount(): number {
-    return this.pendingAttachmentDeletions.length;
-  }
-
-  get removeAttachmentDialogOpen(): boolean {
-    return this.confirmationAction === 'remove-attachment';
-  }
-
-  get saveAttachmentChangesDialogOpen(): boolean {
-    return this.confirmationAction === 'save-attachment-changes';
-  }
-
-  get deleteProjectDialogOpen(): boolean {
-    return this.confirmationAction === 'delete-project';
+  isProjectOverdue(project: Project): boolean {
+    return this.projectService.isOverdue(project);
   }
 
   get filteredProjects(): Project[] {
     const query = this.searchQuery.trim().toLowerCase();
-
-    if (!query) {
-      return this.projects;
-    }
-
-    return this.projects.filter(
-      (project) =>
+    return this.projects.filter((project) => {
+      const displayStatus = this.getProjectDisplayStatus(project);
+      const statusLabel = this.getProjectStatusLabel(project).toLowerCase();
+      const matchesSearch =
+        !query ||
         project.name.toLowerCase().includes(query) ||
-        project.clientName?.toLowerCase().includes(query) ||
-        project.status.toLowerCase().includes(query) ||
-        project.priority.toLowerCase().includes(query),
-    );
-  }
-
-  searchProjects(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    this.searchQuery = input.value;
-  }
-
-  private addFiles(incomingFiles: File[]): void {
-    if (this.saving || !incomingFiles.length) {
-      return;
-    }
-
-    const existingCount = this.editingProject?.attachments?.length ?? 0;
-
-    const availableSlots = this.maxAttachments - existingCount - this.selectedFiles.length;
-
-    if (availableSlots <= 0) {
-      this.toast.error(`A project can have a maximum of ${this.maxAttachments} attachments.`);
-
-      return;
-    }
-
-    let addedCount = 0;
-    let duplicateCount = 0;
-    let oversizedCount = 0;
-
-    for (const file of incomingFiles) {
-      if (addedCount >= availableSlots) {
-        break;
-      }
-
-      const exists = this.selectedFiles.some(
-        (selectedFile) =>
-          selectedFile.name === file.name &&
-          selectedFile.size === file.size &&
-          selectedFile.lastModified === file.lastModified,
-      );
-
-      if (exists) {
-        duplicateCount++;
-        continue;
-      }
-
-      if (file.size > this.maxFileSize && !this.attachmentService.canOptimizeImage(file)) {
-        oversizedCount++;
-
-        this.toast.error(
-          `"${file.name}" exceeds the ${this.formatFileSize(this.maxFileSize)} limit.`,
-        );
-
-        continue;
-      }
-
-      this.selectedFiles.push(file);
-      addedCount++;
-    }
-
-    const validRequestedCount = incomingFiles.length - duplicateCount - oversizedCount;
-
-    if (validRequestedCount > availableSlots) {
-      this.toast.error(
-        `Only ${availableSlots} more attachment${availableSlots === 1 ? '' : 's'} can be added.`,
-      );
-    }
-
-    if (duplicateCount > 0 && addedCount === 0 && oversizedCount === 0) {
-      this.toast.error(
-        duplicateCount === 1
-          ? 'That file is already selected.'
-          : 'Those files are already selected.',
-      );
-    }
-  }
-
-  private async performSave(): Promise<void> {
-    const workspace = this.workspaceService.currentWorkspace();
-
-    if (!workspace?.id) {
-      this.toast.error('No workspace selected.');
-      return;
-    }
-
-    const existingAttachments = this.editingProject?.attachments ?? [];
-
-    try {
-      this.attachmentService.validateFileCount(
-        this.selectedFiles.length,
-        existingAttachments.length,
-      );
-    } catch (error) {
-      this.toast.error(this.getErrorMessage(error));
-
-      return;
-    }
-
-    const value = this.projectForm.getRawValue();
-
-    const project: Omit<Project, 'workspaceId'> = {
-      name: value.name,
-      clientName: value.clientName,
-      description: value.description,
-      status: value.status,
-      priority: value.priority,
-      progress: Number(value.progress),
-    };
-
-    if (value.startDate) {
-      project.startDate = new Date(value.startDate);
-    }
-
-    if (value.dueDate) {
-      project.dueDate = new Date(value.dueDate);
-    }
-
-    this.saving = true;
-    this.isDraggingFiles = false;
-
-    try {
-      let projectId: string;
-
-      if (this.editingProject?.id) {
-        projectId = this.editingProject.id;
-
-        await this.projectService.updateProject(projectId, project);
-      } else {
-        const projectReference = await this.projectService.createProject(project);
-
-        projectId = projectReference.id;
-      }
-
-      let finalAttachments = [...existingAttachments];
-
-      if (this.selectedFiles.length) {
-        const newAttachments = await this.attachmentService.uploadFiles(
-          workspace.id,
-          'projects',
-          projectId,
-          this.selectedFiles,
-          existingAttachments.length,
-        );
-
-        finalAttachments = [...finalAttachments, ...newAttachments];
-      }
-
-      if (this.selectedFiles.length || this.pendingAttachmentDeletions.length) {
-        await this.projectService.updateAttachments(projectId, finalAttachments);
-      }
-
-      for (const attachment of this.pendingAttachmentDeletions) {
-        try {
-          await this.attachmentService.deleteAttachment(attachment);
-        } catch (error) {
-          if (!this.isStorageObjectNotFound(error)) {
-            console.error(`Unable to delete attachment "${attachment.name}" from Storage:`, error);
-          }
-        }
-      }
-
-      this.toast.success(
-        this.editingProject ? 'Project updated successfully.' : 'Project created successfully.',
-      );
-
-      this.resetForm();
-    } catch (error) {
-      console.error('Unable to save project:', error);
-
-      this.toast.error(this.getErrorMessage(error));
-    } finally {
-      this.saving = false;
-    }
-  }
-
-  private isStorageObjectNotFound(error: unknown): boolean {
-    if (typeof error !== 'object' || error === null || !('code' in error)) {
-      return false;
-    }
-
-    return (error as { code?: string }).code === 'storage/object-not-found';
-  }
-
-  private resetConfirmation(): void {
-    this.confirmationAction = null;
-    this.attachmentPendingRemoval = null;
-    this.projectPendingDeletion = null;
-  }
-
-  private resetForm(): void {
-    this.showForm = false;
-    this.editingProject = null;
-    this.originalEditingProject = null;
-    this.selectedFiles = [];
-    this.pendingAttachmentDeletions = [];
-    this.isDraggingFiles = false;
-    this.resetConfirmation();
-
-    this.projectForm.reset({
-      name: '',
-      clientName: '',
-      description: '',
-      status: 'planning',
-      priority: 'medium',
-      progress: 0,
-      startDate: '',
-      dueDate: '',
+        (project.clientName || '').toLowerCase().includes(query) ||
+        statusLabel.includes(query) ||
+        project.priority.toLowerCase().includes(query);
+      const matchesStatus = this.statusFilter === 'all' || displayStatus === this.statusFilter;
+      return matchesSearch && matchesStatus;
     });
   }
 
-  private formatDate(value: any): string {
-    if (!value) {
-      return '';
-    }
-
-    const date = value?.toDate ? value.toDate() : new Date(value);
-
-    return date.toISOString().split('T')[0];
+  searchProjects(event: Event): void {
+    this.searchQuery = (event.target as HTMLInputElement).value;
   }
 
-  private getErrorMessage(error: unknown): string {
-    if (error instanceof Error) {
-      return error.message;
-    }
+  clearProjectSearch(): void {
+    this.searchQuery = '';
+  }
 
-    return 'Unable to save project.';
+  changeStatusFilter(event: Event): void {
+    this.statusFilter = (event.target as HTMLSelectElement).value;
+  }
+
+  private refreshOpenProject(projects: Project[]): void {
+    if (!this.drawerProject?.id) return;
+    const project = projects.find((item) => item.id === this.drawerProject?.id);
+    if (project) this.drawerProject = project;
+  }
+
+  private isStorageObjectNotFound(error: unknown): boolean {
+    if (typeof error !== 'object' || error === null || !('code' in error)) return false;
+    return (error as { code?: string }).code === 'storage/object-not-found';
   }
 }

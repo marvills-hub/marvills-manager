@@ -5,5 +5,8 @@ export interface Client {
   company?: string;
   email?: string;
   phone?: string;
+  photoURL?: string;
+  photoPath?: string;
   createdAt?: any;
+  updatedAt?: any;
 }

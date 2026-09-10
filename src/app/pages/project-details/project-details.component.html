@@ -7,276 +7,411 @@
   }
 
   @if (!loading && project) {
-    <div class="project-tabs">
-      <button [class.active]="activeTab === 'overview'" (click)="activeTab = 'overview'">
-        Overview
-      </button>
+    <div class="project-tabs-bar">
+      <div class="project-tabs">
+        <button
+          type="button"
+          [class.active]="activeTab === 'overview'"
+          (click)="setActiveTab('overview')"
+        >
+          Overview
+        </button>
+        <button
+          type="button"
+          [class.active]="activeTab === 'tasks'"
+          (click)="setActiveTab('tasks')"
+        >
+          Tasks
+          <span>{{ tasks.length }}</span>
+        </button>
+        <button
+          type="button"
+          [class.active]="activeTab === 'attachments'"
+          (click)="setActiveTab('attachments')"
+        >
+          Attachments
+          <span>{{ attachmentCount }}</span>
+        </button>
+      </div>
 
-      <button [class.active]="activeTab === 'tasks'" (click)="activeTab = 'tasks'">
-        Tasks
-
-        <span>
-          {{ tasks.length }}
-        </span>
-      </button>
-
-      <button [class.active]="activeTab === 'attachments'" (click)="activeTab = 'attachments'">
-        Attachments
-
-        <span>
-          {{ attachmentCount }}
-        </span>
+      <button type="button" class="edit-project-button" (click)="openProjectEditor()">
+        <i class="fa-solid fa-pen"></i>
+        Edit Project
       </button>
     </div>
 
-    @if (activeTab === 'overview') {
-      <div class="stats-grid">
-        <article class="stat-card">
-          <span>Project Progress</span>
-
-          <strong>{{ project.progress }}%</strong>
-
-          <div class="progress-track">
-            <div class="progress-value" [style.width.%]="project.progress"></div>
-          </div>
-        </article>
-
-        <article class="stat-card">
-          <span>Total Tasks</span>
-
-          <strong>
-            {{ tasks.length }}
-          </strong>
-
-          <small>Assigned to project</small>
-        </article>
-
-        <article class="stat-card">
-          <span>Completed</span>
-
-          <strong>
-            {{ completedTasks }}
-          </strong>
-
-          <small>{{ taskProgress }}% of tasks</small>
-        </article>
-
-        <article class="stat-card">
-          <span>In Progress</span>
-
-          <strong>
-            {{ inProgressTasks }}
-          </strong>
-
-          <small>Currently active</small>
-        </article>
-      </div>
-
-      <div class="details-grid">
-        <section class="panel">
-          <div class="panel-header">
-            <h2>Project Information</h2>
-          </div>
-
-          <div class="info-list">
-            <div>
-              <span>Client</span>
-
-              <strong>
-                {{ project.clientName || 'Personal Project' }}
-              </strong>
-            </div>
-
-            <div>
-              <span>Status</span>
-
-              <strong>
-                {{ project.status }}
-              </strong>
-            </div>
-
-            <div>
-              <span>Priority</span>
-
-              <strong [class]="project.priority">
-                {{ project.priority }}
-              </strong>
-            </div>
-
-            <div>
-              <span>Start Date</span>
-
-              <strong>
-                @if (project.startDate) {
-                  {{ project.startDate | date: 'MMM d, y' }}
-                } @else {
-                  Not specified
-                }
-              </strong>
-            </div>
-
-            <div>
-              <span>Deadline</span>
-
-              <strong>
-                @if (project.dueDate) {
-                  {{ project.dueDate | date: 'MMM d, y' }}
-                } @else {
-                  No deadline
-                }
-              </strong>
-            </div>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-header">
-            <h2>Description</h2>
-          </div>
-
-          <p class="description">
-            {{ project.description || 'No description has been added to this project.' }}
-          </p>
-        </section>
-      </div>
-    }
-
-    @if (activeTab === 'tasks') {
-      <div class="tasks-panel">
-        <div class="tasks-header">
-          <div>
-            <h2>Project Tasks</h2>
-
-            <p>
-              Tasks belonging to
-              {{ project.name }}.
-            </p>
-          </div>
-
-          <a routerLink="/tasks" class="primary-button"> Open Kanban </a>
-        </div>
-
-        <div class="task-list">
-          @for (task of tasks; track task.id) {
-            <article class="task-row">
-              <div class="task-check" [class.completed]="task.status === 'completed'">
-                @if (task.status === 'completed') {
-                  <i class="fa-solid fa-check"></i>
-                }
+    <div class="project-tab-content">
+      @if (activeTab === 'overview') {
+        <div class="overview-content">
+          @if (isProjectOverdue()) {
+            <div class="overdue-banner">
+              <div class="overdue-icon">
+                <i class="fa-solid fa-triangle-exclamation"></i>
               </div>
-
-              <div class="task-info">
-                <strong>
-                  {{ task.title }}
-                </strong>
-
+              <div>
+                <strong>Project overdue</strong>
                 <span>
-                  {{ task.status }}
+                  This project passed its end date on {{ formatDate(project.dueDate) }} and has not
+                  been completed.
                 </span>
               </div>
-
-              <span class="priority" [class]="task.priority">
-                {{ task.priority }}
-              </span>
-
-              @if (task.dueDate) {
-                <span class="due-date">
-                  <i class="fa-regular fa-calendar"></i>
-
-                  {{ task.dueDate | date: 'MMM d' }}
-                </span>
-              }
-            </article>
+            </div>
           }
 
-          @if (tasks.length === 0) {
+          <div class="stats-grid">
+            <article class="stat-card progress-stat">
+              <div class="stat-content">
+                <span>Project Progress</span>
+                <div class="stat-value">
+                  <strong>{{ projectProgress }}%</strong>
+                </div>
+                <div class="progress-track">
+                  <div class="progress-value" [style.width.%]="projectProgress"></div>
+                </div>
+              </div>
+              <i class="fa-solid fa-chart-line stat-icon"></i>
+            </article>
+
+            <article class="stat-card tasks-stat">
+              <div class="stat-content">
+                <span>Total Tasks</span>
+                <div class="stat-value">
+                  <strong>{{ tasks.length }}</strong>
+                  <small>Assigned</small>
+                </div>
+              </div>
+              <i class="fa-solid fa-list-check stat-icon"></i>
+            </article>
+
+            <article class="stat-card completed-stat">
+              <div class="stat-content">
+                <span>Completed</span>
+                <div class="stat-value">
+                  <strong>{{ completedTasks }}</strong>
+                  <small>{{ taskProgress }}%</small>
+                </div>
+              </div>
+              <i class="fa-solid fa-circle-check stat-icon"></i>
+            </article>
+
+            <article class="stat-card open-stat">
+              <div class="stat-content">
+                <span>Open Tasks</span>
+                <div class="stat-value">
+                  <strong>{{ inProgressTasks }}</strong>
+                  <small>Remaining</small>
+                </div>
+              </div>
+              <i class="fa-solid fa-bars-progress stat-icon"></i>
+            </article>
+          </div>
+
+          <div class="details-grid">
+            <section class="panel description-panel">
+              <div class="panel-header">
+                <h2>Description</h2>
+              </div>
+
+              <div class="description">
+                {{ project.description || 'No description has been added to this project.' }}
+              </div>
+            </section>
+
+            <section class="panel project-information">
+              <div class="panel-header">
+                <h2>Project Information</h2>
+              </div>
+
+              <div class="info-list">
+                <div class="info-item client-info">
+                  <div class="info-label">
+                    <i class="fa-solid fa-building"></i>
+                    <span>Client</span>
+                  </div>
+                  <strong>{{ project.clientName || 'Personal Project' }}</strong>
+                </div>
+
+                <div class="info-item status-info">
+                  <div class="info-label">
+                    <i class="fa-solid fa-circle-nodes"></i>
+                    <span>Status</span>
+                  </div>
+                  <strong class="status-value" [class]="projectStatus">
+                    <span class="status-dot"></span>
+                    {{ projectStatusLabel }}
+                  </strong>
+                </div>
+
+                <div class="info-item priority-info">
+                  <div class="info-label">
+                    <i class="fa-solid fa-bolt"></i>
+                    <span>Priority</span>
+                  </div>
+                  <strong class="priority-value" [class]="project.priority">
+                    {{ project.priority }}
+                  </strong>
+                </div>
+
+                <div class="info-item progress-info">
+                  <div class="info-label">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>Progress</span>
+                  </div>
+                  <strong class="progress-info-value">{{ projectProgress }}%</strong>
+                </div>
+
+                <div class="info-item start-info">
+                  <div class="info-label">
+                    <i class="fa-regular fa-calendar-plus"></i>
+                    <span>Start Date</span>
+                  </div>
+                  <strong>
+                    @if (project.startDate) {
+                      {{ formatDate(project.startDate) }}
+                    } @else {
+                      Not specified
+                    }
+                  </strong>
+                </div>
+
+                <div class="info-item end-info">
+                  <div class="info-label">
+                    <i class="fa-regular fa-calendar-check"></i>
+                    <span>End Date</span>
+                  </div>
+                  <strong [class.overdue-date]="isProjectOverdue()">
+                    @if (project.dueDate) {
+                      {{ formatDate(project.dueDate) }}
+                    } @else {
+                      Not specified
+                    }
+                  </strong>
+                </div>
+
+                <div class="info-item duration-info">
+                  <div class="info-label">
+                    <i class="fa-regular fa-clock"></i>
+                    <span>Duration</span>
+                  </div>
+                  <strong>
+                    @if (project.startDate && project.dueDate) {
+                      {{ projectDuration }} {{ projectDuration === 1 ? 'day' : 'days' }}
+                    } @else {
+                      Not available
+                    }
+                  </strong>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      }
+
+      @if (activeTab === 'tasks') {
+        <section class="tasks-panel">
+          <div class="tasks-header">
+            <div>
+              <h2>Project Tasks</h2>
+              <p>View-only task overview for {{ project.name }}.</p>
+            </div>
+            <a routerLink="/tasks" class="secondary-action">
+              <i class="fa-solid fa-table-columns"></i>
+              Open Tasks
+            </a>
+          </div>
+
+          @if (tasks.length) {
+            <div class="task-table-header">
+              <span>Task</span>
+              <span>Status</span>
+              <span>Priority</span>
+              <span>Assignee</span>
+              <span>Due Date</span>
+            </div>
+
+            <div class="task-list">
+              @for (task of tasks; track task.id) {
+                <article class="task-row">
+                  <div class="task-title">
+                    <div
+                      class="task-check"
+                      [class.completed]="isTaskCompleted(task)"
+                      [style.--status-color]="getTaskStatusColor(task)"
+                    >
+                      @if (isTaskCompleted(task)) {
+                        <i class="fa-solid fa-check"></i>
+                      }
+                    </div>
+
+                    <div class="task-info">
+                      <strong [class.completed-title]="isTaskCompleted(task)">
+                        {{ task.title }}
+                      </strong>
+                      @if (task.description) {
+                        <span>{{ task.description }}</span>
+                      }
+                    </div>
+                  </div>
+
+                  <div class="task-status">
+                    <span
+                      class="task-status-chip"
+                      [style.--status-color]="getTaskStatusColor(task)"
+                    >
+                      <span></span>
+                      {{ getTaskStatusName(task) }}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span class="task-priority" [class]="task.priority">
+                      {{ task.priority }}
+                    </span>
+                  </div>
+
+                  <div class="task-assignee">
+                    @if (getTaskAssignees(task).length) {
+                      <div class="task-assignee-avatars">
+                        @for (member of getTaskAssignees(task).slice(0, 3); track member.userId) {
+                          <div
+                            class="task-assignee-avatar"
+                            [title]="member.displayName || member.email"
+                          >
+                            @if (member.photoURL) {
+                              <img
+                                [src]="member.photoURL"
+                                [alt]="member.displayName || member.email"
+                              />
+                            } @else {
+                              <span>{{ getTaskAssigneeInitials(member) }}</span>
+                            }
+                          </div>
+                        }
+
+                        @if (getTaskAssignees(task).length > 3) {
+                          <div class="task-assignee-avatar more">
+                            +{{ getTaskAssignees(task).length - 3 }}
+                          </div>
+                        }
+                      </div>
+                    } @else {
+                      <i class="fa-regular fa-user"></i>
+                    }
+
+                    <span [title]="getTaskAssigneeLabel(task)">
+                      {{ getTaskAssigneeLabel(task) }}
+                    </span>
+                  </div>
+
+                  <div class="task-due-date">
+                    @if (task.dueDate) {
+                      <i class="fa-regular fa-calendar"></i>
+                      <span>{{ formatDate(task.dueDate) }}</span>
+                    } @else {
+                      <span class="no-value">No due date</span>
+                    }
+                  </div>
+                </article>
+              }
+            </div>
+          } @else {
             <div class="empty-state">
               <i class="fa-regular fa-square-check"></i>
-
               <strong>No tasks yet</strong>
-
-              <p>Add tasks from your Kanban board.</p>
+              <p>Tasks assigned to this project will appear here.</p>
+              <a routerLink="/tasks" class="secondary-action">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                Open Tasks
+              </a>
             </div>
           }
-        </div>
-      </div>
-    }
+        </section>
+      }
 
-    @if (activeTab === 'attachments') {
-      <section class="attachments-panel">
-        <div class="attachments-header">
-          <div>
-            <h2>Project Attachments</h2>
+      @if (activeTab === 'attachments') {
+        <section class="attachments-panel">
+          <div class="attachments-header">
+            <div>
+              <h2>Project Attachments</h2>
+              <p>View files attached to {{ project.name }}.</p>
+            </div>
 
-            <p>
-              Files attached to
-              {{ project.name }}.
-            </p>
+            <span class="attachment-count">
+              <i class="fa-solid fa-paperclip"></i>
+              {{ attachmentCount }}
+              {{ attachmentCount === 1 ? 'file' : 'files' }}
+            </span>
           </div>
 
-          <span class="attachment-count">
-            <i class="fa-solid fa-paperclip"></i>
+          @if (attachments.length) {
+            <div class="attachments-grid">
+              @for (attachment of attachments; track attachment.id) {
+                <article
+                  class="attachment-card"
+                  tabindex="0"
+                  role="button"
+                  (click)="openPreview(attachment)"
+                  (keydown.enter)="openPreview(attachment)"
+                >
+                  <div class="attachment-preview">
+                    @if (isImage(attachment)) {
+                      <img [src]="attachment.url" [alt]="attachment.name" />
+                    } @else {
+                      <div class="file-preview">
+                        <i [class]="getFileIcon(attachment)"></i>
+                        <span>{{ getFileTypeLabel(attachment) }}</span>
+                      </div>
+                    }
 
-            {{ attachmentCount }}
-            {{ attachmentCount === 1 ? 'file' : 'files' }}
-          </span>
-        </div>
-
-        @if (attachments.length) {
-          <div class="attachments-grid">
-            @for (attachment of attachments; track attachment.id) {
-              <button type="button" class="attachment-card" (click)="openPreview(attachment)">
-                <div class="attachment-preview">
-                  @if (isImage(attachment)) {
-                    <img [src]="attachment.url" [alt]="attachment.name" />
-                  } @else {
-                    <div class="file-preview">
-                      <i [class]="getFileIcon(attachment)"></i>
-
-                      <span>
-                        {{ getFileTypeLabel(attachment) }}
-                      </span>
+                    <div class="preview-indicator">
+                      <i class="fa-regular fa-eye"></i>
                     </div>
-                  }
-
-                  <div class="preview-indicator">
-                    <i class="fa-regular fa-eye"></i>
                   </div>
-                </div>
 
-                <div class="attachment-info">
-                  <strong [title]="attachment.name">
-                    {{ attachment.name }}
-                  </strong>
-
-                  <div class="attachment-meta">
-                    <span>
-                      {{ getFileTypeLabel(attachment) }}
-                    </span>
-
-                    <span class="meta-dot"></span>
-
-                    <span>
-                      {{ formatFileSize(attachment.size) }}
-                    </span>
+                  <div class="attachment-info">
+                    <strong [title]="attachment.name">{{ attachment.name }}</strong>
+                    <div class="attachment-meta">
+                      <span>{{ getFileTypeLabel(attachment) }}</span>
+                      <span class="meta-dot"></span>
+                      <span>{{ formatFileSize(attachment.size) }}</span>
+                    </div>
                   </div>
-                </div>
-              </button>
-            }
-          </div>
-        } @else {
-          <div class="empty-state attachment-empty">
-            <i class="fa-regular fa-folder-open"></i>
+                </article>
+              }
+            </div>
+          } @else {
+            <div class="empty-state attachment-empty">
+              <i class="fa-regular fa-folder-open"></i>
+              <strong>No attachments</strong>
+              <p>Files uploaded to this project will appear here.</p>
+            </div>
+          }
+        </section>
+      }
+    </div>
+  }
 
-            <strong>No attachments</strong>
-
-            <p>Files uploaded to this project will appear here.</p>
-          </div>
-        }
-      </section>
-    }
+  @if (!loading && !project) {
+    <div class="empty-state project-not-found">
+      <i class="fa-regular fa-folder-open"></i>
+      <strong>Project not found</strong>
+      <p>The project may have been removed or is no longer available.</p>
+      <a routerLink="/projects" class="secondary-action">
+        <i class="fa-solid fa-arrow-left"></i>
+        Back to Projects
+      </a>
+    </div>
   }
 </section>
+
+@if (project) {
+  <app-project-form-drawer
+    [open]="projectDrawerOpen"
+    [project]="project"
+    (closed)="closeProjectEditor()"
+    (saved)="projectSaved()"
+  />
+}
 
 @if (previewAttachment) {
   <div class="preview-overlay" (click)="closePreview()">
@@ -286,15 +421,10 @@
           <div class="preview-file-icon">
             <i [class]="getFileIcon(previewAttachment)"></i>
           </div>
-
           <div>
-            <strong [title]="previewAttachment.name">
-              {{ previewAttachment.name }}
-            </strong>
-
+            <strong [title]="previewAttachment.name">{{ previewAttachment.name }}</strong>
             <span>
-              {{ getFileTypeLabel(previewAttachment) }}
-              ·
+              {{ getFileTypeLabel(previewAttachment) }} ·
               {{ formatFileSize(previewAttachment.size) }}
             </span>
           </div>
@@ -313,35 +443,31 @@
       <div class="preview-body">
         @if (isImage(previewAttachment)) {
           <div class="image-viewer">
-            <img [src]="previewAttachment.url" [alt]="previewAttachment.name" />
+            <img [src]="getSafeResourceUrl(previewAttachment)" [alt]="previewAttachment.name" />
           </div>
         } @else if (isPdf(previewAttachment)) {
           <iframe
             class="document-viewer"
-            [src]="previewAttachment.url"
+            [src]="getSafeResourceUrl(previewAttachment)"
             [title]="previewAttachment.name"
           ></iframe>
         } @else if (isVideo(previewAttachment)) {
           <div class="media-viewer">
-            <video [src]="previewAttachment.url" controls></video>
+            <video [src]="getSafeResourceUrl(previewAttachment)" controls></video>
           </div>
         } @else if (isAudio(previewAttachment)) {
           <div class="audio-viewer">
             <div class="audio-icon">
               <i class="fa-solid fa-file-audio"></i>
             </div>
-
-            <strong>
-              {{ previewAttachment.name }}
-            </strong>
-
-            <audio [src]="previewAttachment.url" controls></audio>
+            <strong>{{ previewAttachment.name }}</strong>
+            <audio [src]="getSafeResourceUrl(previewAttachment)" controls></audio>
           </div>
         } @else if (isText(previewAttachment)) {
           <div class="text-preview">
             <iframe
               class="document-viewer"
-              [src]="previewAttachment.url"
+              [src]="getSafeResourceUrl(previewAttachment)"
               [title]="previewAttachment.name"
             ></iframe>
           </div>
@@ -350,12 +476,7 @@
             <div class="unsupported-icon">
               <i [class]="getFileIcon(previewAttachment)"></i>
             </div>
-
-            <strong>
-              {{ getFileTypeLabel(previewAttachment) }}
-              File
-            </strong>
-
+            <strong>{{ getFileTypeLabel(previewAttachment) }} File</strong>
             <p>
               A browser preview isn't available for this file type. You can still open the original
               file.
@@ -367,12 +488,8 @@
       <div class="preview-footer">
         <div>
           <span>File size</span>
-
-          <strong>
-            {{ formatFileSize(previewAttachment.size) }}
-          </strong>
+          <strong>{{ formatFileSize(previewAttachment.size) }}</strong>
         </div>
-
         <a
           [href]="previewAttachment.url"
           target="_blank"
@@ -380,7 +497,6 @@
           class="open-file-button"
         >
           <i class="fa-solid fa-arrow-up-right-from-square"></i>
-
           Open Full File
         </a>
       </div>
