@@ -1,11 +1,16 @@
 import { Routes } from '@angular/router';
-import { AppLayoutComponent } from './layout/app-layout/app-layout.component';
 import { authGuard } from './core/guards/auth.guard';
+import { AppLayoutComponent } from './layout/app-layout/app-layout.component';
 
 export const routes: Routes = [
   {
+    path: 'auth',
+    loadComponent: () => import('./auth/auth.component').then((m) => m.AuthComponent),
+  },
+  {
     path: 'login',
-    loadComponent: () => import('./pages/login/login.component').then((m) => m.LoginComponent),
+    redirectTo: 'auth',
+    pathMatch: 'full',
   },
   {
     path: '',
@@ -39,24 +44,37 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/tasks/tasks.component').then((m) => m.TasksComponent),
       },
       {
-        path: 'clients',
-        loadComponent: () =>
-          import('./pages/clients/clients.component').then((m) => m.ClientsComponent),
+        path: 'ideas',
+        loadComponent: () => import('./pages/ideas/ideas.component').then((m) => m.IdeasComponent),
       },
       {
-        path: 'workspaces',
+        path: 'diagrams',
         loadComponent: () =>
-          import('./pages/workspaces/workspaces.component').then((m) => m.WorkspacesComponent),
+          import('./pages/diagrams/diagrams.component').then((m) => m.DiagramsComponent),
+      },
+      {
+        path: 'users',
+        loadComponent: () => import('./pages/users/users.component').then((m) => m.UsersComponent),
+      },
+      {
+        path: 'clients',
+        redirectTo: 'users',
+        pathMatch: 'full',
       },
       {
         path: 'members',
-        loadComponent: () =>
-          import('./pages/members/members.component').then((m) => m.MembersComponent),
+        redirectTo: 'users',
+        pathMatch: 'full',
       },
       {
         path: 'invitations',
         loadComponent: () =>
           import('./pages/invitations/invitations.component').then((m) => m.InvitationsComponent),
+      },
+      {
+        path: 'workspaces',
+        loadComponent: () =>
+          import('./pages/workspaces/workspaces.component').then((m) => m.WorkspacesComponent),
       },
       {
         path: 'profile',

@@ -1,0 +1,253 @@
+<section class="diagram-editor">
+  <div class="editor-toolbar">
+    <div class="shape-tools">
+      <button type="button" [disabled]="!canManage" (click)="addNode('rectangle')">
+        <span class="shape-icon rectangle"></span>
+        Rectangle
+      </button>
+
+      <button type="button" [disabled]="!canManage" (click)="addNode('rounded')">
+        <span class="shape-icon rounded"></span>
+        Rounded
+      </button>
+
+      <button type="button" [disabled]="!canManage" (click)="addNode('circle')">
+        <span class="shape-icon circle"></span>
+        Circle
+      </button>
+
+      <button type="button" [disabled]="!canManage" (click)="addNode('diamond')">
+        <span class="shape-icon diamond"></span>
+        Diamond
+      </button>
+
+      <button type="button" [disabled]="!canManage" (click)="addNode('text')">
+        <i class="fa-solid fa-font"></i>
+        Text
+      </button>
+    </div>
+
+    <div class="toolbar-right">
+      @if (connectionSourceId) {
+        <button class="connecting-state" type="button" (click)="cancelConnection()">
+          <i class="fa-solid fa-link"></i>
+          Select target node
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      }
+
+      @if (getSelectedConnection(); as selectedConnection) {
+        <div class="connection-toolbar">
+          <select
+            [ngModel]="selectedConnection.type"
+            [disabled]="!canManage"
+            (ngModelChange)="updateSelectedConnectionType($event)"
+          >
+            @for (type of connectionTypes; track type.value) {
+              <option [value]="type.value">
+                {{ type.label }}
+              </option>
+            }
+          </select>
+
+          <button
+            type="button"
+            title="Delete connection"
+            [disabled]="!canManage"
+            (click)="deleteSelectedConnection()"
+          >
+            <i class="fa-regular fa-trash-can"></i>
+          </button>
+        </div>
+      }
+
+      <div class="zoom-tools">
+        <button type="button" title="Zoom out" (click)="zoomOut()">
+          <i class="fa-solid fa-minus"></i>
+        </button>
+
+        <button class="zoom-value" type="button" (click)="resetZoom()">
+          {{ zoom * 100 | number: '1.0-0' }}%
+        </button>
+
+        <button type="button" title="Zoom in" (click)="zoomIn()">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="canvas-scroll">
+    <div class="diagram-canvas" [style.transform]="'scale(' + zoom + ')'" (click)="deselect()">
+      <svg class="connections-layer">
+        <defs>
+          <marker
+            id="diagram-arrow"
+            markerWidth="9"
+            markerHeight="9"
+            refX="8"
+            refY="3"
+            orient="auto"
+            markerUnits="strokeWidth"
+          >
+            <path d="M0,0 L0,6 L9,3 z"></path>
+          </marker>
+
+          <marker
+            id="diagram-one"
+            markerWidth="10"
+            markerHeight="14"
+            refX="5"
+            refY="7"
+            orient="auto-start-reverse"
+            markerUnits="strokeWidth"
+          >
+            <path d="M5,1 L5,13"></path>
+          </marker>
+
+          <marker
+            id="diagram-zero"
+            markerWidth="12"
+            markerHeight="12"
+            refX="6"
+            refY="6"
+            orient="auto-start-reverse"
+            markerUnits="strokeWidth"
+          >
+            <circle cx="6" cy="6" r="4"></circle>
+          </marker>
+
+          <marker
+            id="diagram-many-start"
+            markerWidth="14"
+            markerHeight="14"
+            refX="2"
+            refY="7"
+            orient="auto"
+            markerUnits="strokeWidth"
+          >
+            <path d="M2,7 L12,1 M2,7 L12,7 M2,7 L12,13"></path>
+          </marker>
+
+          <marker
+            id="diagram-many-end"
+            markerWidth="14"
+            markerHeight="14"
+            refX="12"
+            refY="7"
+            orient="auto"
+            markerUnits="strokeWidth"
+          >
+            <path d="M12,7 L2,1 M12,7 L2,7 M12,7 L2,13"></path>
+          </marker>
+        </defs>
+
+        @for (connection of localConnections; track connection.id) {
+          @if (getConnectionSource(connection); as source) {
+            @if (getConnectionTarget(connection); as target) {
+              <g
+                class="connection"
+                [class.editable]="canManage"
+                [class.selected]="selectedConnectionId === connection.id"
+                (click)="selectConnection(connection, $event)"
+              >
+                <line
+                  class="connection-hitbox"
+                  [attr.x1]="getConnectionStartX(source, target)"
+                  [attr.y1]="getConnectionStartY(source, target)"
+                  [attr.x2]="getConnectionEndX(source, target)"
+                  [attr.y2]="getConnectionEndY(source, target)"
+                ></line>
+
+                <line
+                  class="connection-line"
+                  [attr.x1]="getConnectionStartX(source, target)"
+                  [attr.y1]="getConnectionStartY(source, target)"
+                  [attr.x2]="getConnectionEndX(source, target)"
+                  [attr.y2]="getConnectionEndY(source, target)"
+                  [attr.marker-start]="getStartMarker(connection)"
+                  [attr.marker-end]="getEndMarker(connection)"
+                ></line>
+              </g>
+            }
+          }
+        }
+      </svg>
+
+      @for (node of localNodes; track node.id) {
+        <div
+          class="diagram-node"
+          cdkDrag
+          cdkDragBoundary=".diagram-canvas"
+          [cdkDragDisabled]="!canManage"
+          [cdkDragScale]="zoom"
+          [cdkDragFreeDragPosition]="{ x: node.x, y: node.y }"
+          [class.selected]="selectedNodeId === node.id"
+          [class.connection-source]="connectionSourceId === node.id"
+          [class.rectangle]="node.type === 'rectangle'"
+          [class.rounded]="node.type === 'rounded'"
+          [class.circle]="node.type === 'circle'"
+          [class.diamond]="node.type === 'diamond'"
+          [class.text-node]="node.type === 'text'"
+          [style.width.px]="node.width"
+          [style.height.px]="node.height"
+          [style.background]="node.background"
+          [style.color]="node.color"
+          [style.border-color]="node.borderColor"
+          [style.z-index]="node.zIndex"
+          (click)="selectNode(node, $event)"
+          (cdkDragEnded)="nodeDragEnded(node, $event)"
+        >
+          @if (selectedNodeId === node.id && canManage) {
+            <div class="node-actions" (click)="$event.stopPropagation()">
+              <button type="button" title="Connect" (click)="startConnection(node, $event)">
+                <i class="fa-solid fa-arrow-right-long"></i>
+              </button>
+
+              <button type="button" title="Duplicate" (click)="duplicateNode(node, $event)">
+                <i class="fa-regular fa-copy"></i>
+              </button>
+
+              <button type="button" title="Delete" (click)="deleteNode(node, $event)">
+                <i class="fa-regular fa-trash-can"></i>
+              </button>
+            </div>
+          }
+
+          @if (node.type === 'diamond') {
+            <div class="diamond-shape"></div>
+          }
+
+          <input
+            class="node-text"
+            type="text"
+            [value]="node.text"
+            [disabled]="!canManage"
+            (click)="$event.stopPropagation()"
+            (input)="updateNodeText(node, $any($event.target).value)"
+          />
+
+          @if (selectedNodeId === node.id && canManage) {
+            <button
+              class="resize-handle"
+              type="button"
+              title="Resize"
+              (pointerdown)="startResize(node, $event)"
+            ></button>
+          }
+        </div>
+      }
+
+      @if (!localNodes.length) {
+        <div class="canvas-empty">
+          <div>
+            <i class="fa-solid fa-diagram-project"></i>
+          </div>
+
+          <strong>Empty canvas</strong>
+          <span>Add a shape from the toolbar to begin your diagram.</span>
+        </div>
+      }
+    </div>
+  </div>
+</section>

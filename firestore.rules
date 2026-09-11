@@ -2,7 +2,6 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
     function isSignedIn() {
       return request.auth != null;
     }
@@ -11,45 +10,297 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    function membershipId(workspaceId) {
+      return workspaceId + "_" + request.auth.uid;
+    }
+
+    function membershipExists(workspaceId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/workspaceMembers/$(membershipId(workspaceId)));
+    }
+
+    function membership(workspaceId) {
+      return get(/databases/$(database)/documents/workspaceMembers/$(membershipId(workspaceId)));
+    }
+
+    function isWorkspaceMember(workspaceId) {
+      return membershipExists(workspaceId)
+        && membership(workspaceId).data.status == "active";
+    }
+
+    function isWorkspaceOwner(workspaceId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/workspaces/$(workspaceId))
+        && get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid;
+    }
+
+    function isWorkspaceAdmin(workspaceId) {
+      return isWorkspaceMember(workspaceId)
+        && membership(workspaceId).data.role == "admin";
+    }
+
+    function isWorkspaceManager(workspaceId) {
+      return isWorkspaceMember(workspaceId)
+        && membership(workspaceId).data.role == "manager";
+    }
+
+    function isWorkspaceEditor(workspaceId) {
+      return isWorkspaceOwner(workspaceId)
+        || (
+          isWorkspaceMember(workspaceId)
+          && (
+            membership(workspaceId).data.role == "owner"
+            || membership(workspaceId).data.role == "admin"
+            || membership(workspaceId).data.role == "manager"
+            || membership(workspaceId).data.role == "member"
+          )
+        );
+    }
+
+    function canManageMembers(workspaceId) {
+      return isWorkspaceOwner(workspaceId)
+        || isWorkspaceAdmin(workspaceId);
+    }
+
+    function userEmail() {
+      return isSignedIn() && request.auth.token.email != null
+        ? request.auth.token.email
+        : "";
+    }
+
+    function invitationId(workspaceId) {
+      return workspaceId + "_" + userEmail();
+    }
+
+    function invitationExists(workspaceId) {
+      return isSignedIn()
+        && userEmail() != ""
+        && exists(
+          /databases/$(database)/documents/workspaceInvitations/$(invitationId(workspaceId))
+        );
+    }
+
+    function invitation(workspaceId) {
+      return get(
+        /databases/$(database)/documents/workspaceInvitations/$(invitationId(workspaceId))
+      );
+    }
+
+    function canAcceptInvitation(workspaceId) {
+      return invitationExists(workspaceId)
+        && invitation(workspaceId).data.email == userEmail()
+        && invitation(workspaceId).data.status == "pending";
+    }
+
     match /users/{userId} {
       allow read: if isSignedIn();
+
       allow create: if isCurrentUser(userId);
+
       allow update: if isCurrentUser(userId);
+
       allow delete: if false;
     }
 
     match /workspaces/{workspaceId} {
-      allow read, write: if isSignedIn();
+      allow read: if isSignedIn()
+        && (
+          resource.data.ownerId == request.auth.uid
+          || isWorkspaceMember(workspaceId)
+        );
+
+      allow create: if isSignedIn()
+        && request.resource.data.ownerId == request.auth.uid;
+
+      allow update: if isSignedIn()
+        && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == resource.data.ownerId;
+
+      allow delete: if isSignedIn()
+        && resource.data.ownerId == request.auth.uid;
     }
 
     match /workspaceMembers/{memberId} {
-      allow read, write: if isSignedIn();
+      allow read: if isSignedIn()
+        && (
+          resource.data.userId == request.auth.uid
+          || isWorkspaceOwner(resource.data.workspaceId)
+          || isWorkspaceMember(resource.data.workspaceId)
+        );
+
+      allow create: if isSignedIn()
+        && (
+          (
+            request.resource.data.userId == request.auth.uid
+            && request.resource.data.role == "owner"
+            && getAfter(
+              /databases/$(database)/documents/workspaces/$(request.resource.data.workspaceId)
+            ).data.ownerId == request.auth.uid
+          )
+          ||
+          (
+            request.resource.data.userId == request.auth.uid
+            && request.resource.data.email == userEmail()
+            && request.resource.data.status == "active"
+            && request.resource.data.role != "owner"
+            && canAcceptInvitation(request.resource.data.workspaceId)
+            && request.resource.data.role
+              == invitation(request.resource.data.workspaceId).data.role
+            && request.resource.data.type
+              == invitation(request.resource.data.workspaceId).data.type
+          )
+          ||
+          (
+            canManageMembers(request.resource.data.workspaceId)
+            && request.resource.data.role != "owner"
+          )
+        );
+
+      allow update: if isSignedIn()
+        && canManageMembers(resource.data.workspaceId)
+        && resource.data.role != "owner"
+        && request.resource.data.role != "owner"
+        && request.resource.data.workspaceId == resource.data.workspaceId;
+
+      allow delete: if isSignedIn()
+        && (
+          (
+            resource.data.role != "owner"
+            && canManageMembers(resource.data.workspaceId)
+          )
+          ||
+          (
+            resource.data.role == "owner"
+            && resource.data.userId == request.auth.uid
+            && isWorkspaceOwner(resource.data.workspaceId)
+            && !existsAfter(
+              /databases/$(database)/documents/workspaces/$(resource.data.workspaceId)
+            )
+          )
+        );
     }
 
     match /workspaceInvitations/{invitationId} {
-      allow read, write: if isSignedIn();
+      allow read: if isSignedIn()
+        && (
+          resource.data.email == userEmail()
+          || isWorkspaceOwner(resource.data.workspaceId)
+          || isWorkspaceMember(resource.data.workspaceId)
+        );
+
+      allow create: if isSignedIn()
+        && canManageMembers(request.resource.data.workspaceId)
+        && request.resource.data.role != "owner"
+        && request.resource.data.status == "pending";
+
+      allow update: if isSignedIn()
+        && request.resource.data.workspaceId == resource.data.workspaceId
+        && (
+          canManageMembers(resource.data.workspaceId)
+          ||
+          (
+            resource.data.email == userEmail()
+            && resource.data.status == "pending"
+            && (
+              request.resource.data.status == "accepted"
+              || request.resource.data.status == "declined"
+            )
+          )
+        );
+
+      allow delete: if isSignedIn()
+        && canManageMembers(resource.data.workspaceId);
     }
 
     match /projects/{projectId} {
-      allow read, write: if isSignedIn();
+      allow read: if isWorkspaceOwner(resource.data.workspaceId)
+        || isWorkspaceMember(resource.data.workspaceId);
+
+      allow create: if isWorkspaceEditor(request.resource.data.workspaceId);
+
+      allow update: if isWorkspaceEditor(resource.data.workspaceId)
+        && request.resource.data.workspaceId == resource.data.workspaceId;
+
+      allow delete: if isWorkspaceEditor(resource.data.workspaceId);
     }
 
     match /tasks/{taskId} {
-      allow read, write: if isSignedIn();
+      allow read: if isWorkspaceOwner(resource.data.workspaceId)
+        || isWorkspaceMember(resource.data.workspaceId);
+
+      allow create: if isWorkspaceEditor(request.resource.data.workspaceId);
+
+      allow update: if isWorkspaceEditor(resource.data.workspaceId)
+        && request.resource.data.workspaceId == resource.data.workspaceId;
+
+      allow delete: if isWorkspaceEditor(resource.data.workspaceId);
     }
 
     match /clients/{clientId} {
-      allow read, write: if isSignedIn();
+      allow read: if isWorkspaceOwner(resource.data.workspaceId)
+        || isWorkspaceMember(resource.data.workspaceId);
+
+      allow create: if isWorkspaceEditor(request.resource.data.workspaceId);
+
+      allow update: if isWorkspaceEditor(resource.data.workspaceId)
+        && request.resource.data.workspaceId == resource.data.workspaceId;
+
+      allow delete: if isWorkspaceEditor(resource.data.workspaceId);
     }
 
     match /taskStatuses/{statusId} {
-      allow read, write: if isSignedIn();
+      allow read: if isWorkspaceOwner(resource.data.workspaceId)
+        || isWorkspaceMember(resource.data.workspaceId);
+
+      allow create: if isWorkspaceEditor(request.resource.data.workspaceId);
+
+      allow update: if isWorkspaceEditor(resource.data.workspaceId)
+        && request.resource.data.workspaceId == resource.data.workspaceId;
+
+      allow delete: if isWorkspaceEditor(resource.data.workspaceId);
+    }
+
+    match /ideas/{ideaId} {
+      allow read: if isWorkspaceOwner(resource.data.workspaceId)
+        || isWorkspaceMember(resource.data.workspaceId);
+
+      allow create: if isWorkspaceEditor(request.resource.data.workspaceId);
+
+      allow update: if isWorkspaceEditor(resource.data.workspaceId)
+        && request.resource.data.workspaceId == resource.data.workspaceId
+        && request.resource.data.createdBy == resource.data.createdBy;
+
+      allow delete: if isWorkspaceEditor(resource.data.workspaceId);
+    }
+
+    match /boardNotes/{noteId} {
+      allow read: if isWorkspaceOwner(resource.data.workspaceId)
+        || isWorkspaceMember(resource.data.workspaceId);
+
+      allow create: if isWorkspaceEditor(request.resource.data.workspaceId);
+
+      allow update: if isWorkspaceEditor(resource.data.workspaceId)
+        && request.resource.data.workspaceId == resource.data.workspaceId
+        && request.resource.data.createdBy == resource.data.createdBy;
+
+      allow delete: if isWorkspaceEditor(resource.data.workspaceId);
+    }
+
+    match /diagrams/{diagramId} {
+      allow read: if isWorkspaceOwner(resource.data.workspaceId)
+        || isWorkspaceMember(resource.data.workspaceId);
+
+      allow create: if isWorkspaceEditor(request.resource.data.workspaceId);
+
+      allow update: if isWorkspaceEditor(resource.data.workspaceId)
+        && request.resource.data.workspaceId == resource.data.workspaceId
+        && request.resource.data.createdBy == resource.data.createdBy;
+
+      allow delete: if isWorkspaceEditor(resource.data.workspaceId);
     }
 
     match /{document=**} {
       allow read, write: if false;
     }
-
-   
   }
 }

@@ -19,6 +19,8 @@ export class SidebarComponent implements OnInit {
   readonly permissionService = inject(WorkspacePermissionService);
   workspaces: Workspace[] = [];
   workspaceMenuOpen = false;
+  logoutDialogOpen = false;
+  loggingOut = false;
 
   get user() {
     return this.authService.currentUser;
@@ -34,22 +36,20 @@ export class SidebarComponent implements OnInit {
 
   get initials(): string {
     const name = this.displayName.trim();
-    if (!name) {
-      return 'MU';
-    }
+    if (!name) return 'MU';
     const parts = name.split(/\s+/).filter(Boolean);
-    if (parts.length === 1) {
-      return parts[0].substring(0, 2).toUpperCase();
-    }
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
     return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
   }
 
   get workspaceRole(): string {
     const role = this.permissionService.role();
-    if (!role) {
-      return 'Workspace Member';
-    }
+    if (!role) return 'Workspace Member';
     return role.charAt(0).toUpperCase() + role.slice(1);
+  }
+
+  get photoURL(): string {
+    return this.user?.photoURL || '';
   }
 
   ngOnInit(): void {
@@ -70,12 +70,24 @@ export class SidebarComponent implements OnInit {
     this.workspaceMenuOpen = false;
   }
 
-  async logout(): Promise<void> {
-    await this.authService.logout();
-    await this.router.navigate(['/login']);
+  openLogoutDialog(): void {
+    this.logoutDialogOpen = true;
   }
 
-  get photoURL(): string {
-    return this.user?.photoURL || '';
+  closeLogoutDialog(): void {
+    if (this.loggingOut) return;
+    this.logoutDialogOpen = false;
+  }
+
+  async confirmLogout(): Promise<void> {
+    if (this.loggingOut) return;
+    this.loggingOut = true;
+    try {
+      await this.authService.logout();
+      this.logoutDialogOpen = false;
+      await this.router.navigate(['/login']);
+    } finally {
+      this.loggingOut = false;
+    }
   }
 }

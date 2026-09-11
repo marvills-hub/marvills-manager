@@ -1,0 +1,158 @@
+<div class="backlog">
+  <div class="backlog-header">
+    <span>IDEA</span>
+    <span>STATUS</span>
+    <span>PRIORITY</span>
+    <span>CATEGORY</span>
+    <span>BOARD</span>
+    <span></span>
+  </div>
+
+  @for (idea of ideas; track idea.id) {
+    <article class="idea-row">
+      <div class="idea-main">
+        <div class="idea-icon">
+          <i class="fa-regular fa-lightbulb"></i>
+        </div>
+
+        <div>
+          <strong>{{ idea.title }}</strong>
+          <span>{{ idea.description || 'No description' }}</span>
+
+          @if (idea.tags.length) {
+            <div class="idea-tags">
+              @for (tag of idea.tags.slice(0, 3); track tag) {
+                <small>{{ tag }}</small>
+              }
+
+              @if (idea.tags.length > 3) {
+                <small>+{{ idea.tags.length - 3 }}</small>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <div>
+        @if (canManage && idea.status !== 'converted') {
+          <select
+            class="inline-select status-select"
+            [class]="idea.status"
+            [value]="idea.status"
+            (change)="changeStatus(idea, $event)"
+          >
+            <option value="idea">Idea</option>
+            <option value="evaluating">Evaluating</option>
+            <option value="planned">Planned</option>
+            <option value="archived">Archived</option>
+          </select>
+        } @else {
+          <span class="status-badge" [class]="idea.status">
+            <span></span>
+            {{ getStatusLabel(idea.status) }}
+          </span>
+        }
+      </div>
+
+      <div>
+        @if (canManage) {
+          <select
+            class="inline-select priority-select"
+            [class]="idea.priority"
+            [value]="idea.priority"
+            (change)="changePriority(idea, $event)"
+          >
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="urgent">Urgent</option>
+          </select>
+        } @else {
+          <span class="priority-badge" [class]="idea.priority">
+            <i class="fa-solid fa-flag"></i>
+            {{ idea.priority }}
+          </span>
+        }
+      </div>
+
+      <div class="category-value">
+        {{ idea.category || 'Uncategorized' }}
+      </div>
+
+      <div>
+        @if (idea.boardNoteId) {
+          <span class="board-status">
+            <i class="fa-solid fa-thumbtack"></i>
+            Pinned
+          </span>
+        } @else if (canManage) {
+          <button class="pin-button" type="button" (click)="pinIdea.emit(idea)">
+            <i class="fa-solid fa-thumbtack"></i>
+            Pin
+          </button>
+        } @else {
+          <span class="muted">Not pinned</span>
+        }
+      </div>
+
+      <div class="idea-actions">
+        @if (idea.convertedProjectId) {
+          <button
+            type="button"
+            class="project-button"
+            title="Open project"
+            (click)="openProject.emit(idea)"
+          >
+            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+          </button>
+        } @else if (canManage) {
+          <button
+            type="button"
+            class="convert-button"
+            title="Convert to project"
+            (click)="convertIdea.emit(idea)"
+          >
+            <i class="fa-solid fa-folder-plus"></i>
+          </button>
+        }
+
+        @if (canManage) {
+          <button type="button" title="Edit idea" (click)="editIdea.emit(idea)">
+            <i class="fa-solid fa-pen"></i>
+          </button>
+
+          <button type="button" title="Delete idea" (click)="deleteIdea.emit(idea)">
+            <i class="fa-regular fa-trash-can"></i>
+          </button>
+        }
+      </div>
+    </article>
+  }
+
+  @if (totalIdeas === 0) {
+    <div class="backlog-empty">
+      <div>
+        <i class="fa-regular fa-lightbulb"></i>
+      </div>
+
+      <h3>No ideas yet</h3>
+      <p>Capture an idea directly or convert one of your board notes.</p>
+
+      @if (canManage) {
+        <button class="primary-button" type="button" (click)="openCreateIdea()">
+          <i class="fa-solid fa-plus"></i>
+          Create Idea
+        </button>
+      }
+    </div>
+  } @else if (ideas.length === 0) {
+    <div class="backlog-empty">
+      <div>
+        <i class="fa-solid fa-magnifying-glass"></i>
+      </div>
+
+      <h3>No matching ideas</h3>
+      <p>Try changing your search or status filter.</p>
+    </div>
+  }
+</div>

@@ -1,0 +1,78 @@
+@if (open && note; as currentNote) {
+  <div class="note-view-backdrop" (click)="close()">
+    <div class="note-view-shell" (click)="$event.stopPropagation()">
+      <div class="view-toolbar">
+        <div class="view-info">
+          @if (currentNote.type === 'idea') {
+            <span>
+              <i class="fa-regular fa-lightbulb"></i>
+              IDEA
+            </span>
+          } @else {
+            <span>
+              <i class="fa-regular fa-note-sticky"></i>
+              NOTE
+            </span>
+          }
+        </div>
+
+        <div class="view-actions">
+          @if (canManage) {
+            @if (currentNote.type === 'note') {
+              <button type="button" title="Convert to idea" (click)="convert()">
+                <i class="fa-regular fa-lightbulb"></i>
+              </button>
+            }
+
+            <button type="button" title="Edit note" (click)="edit()">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+
+            <button class="delete-action" type="button" title="Delete note" (click)="delete()">
+              <i class="fa-regular fa-trash-can"></i>
+            </button>
+          }
+
+          <button type="button" title="Close" (click)="close()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <article
+        class="expanded-note"
+        [class]="currentNote.design"
+        [class.idea-note]="currentNote.type === 'idea'"
+      >
+        <div class="note-decoration" [class]="currentNote.pin">
+          @if (currentNote.pin === 'red-pin' || currentNote.pin === 'blue-pin') {
+            <span class="pushpin"></span>
+          } @else if (currentNote.pin === 'tape') {
+            <span class="tape"></span>
+          } @else {
+            <i class="fa-solid fa-paperclip"></i>
+          }
+        </div>
+
+        <div class="note-heading">
+          @if (currentNote.type === 'idea') {
+            <span class="note-type">
+              <i class="fa-regular fa-lightbulb"></i>
+              IDEA
+            </span>
+          } @else {
+            <span class="note-type">NOTE</span>
+          }
+
+          <h1>{{ currentNote.title }}</h1>
+        </div>
+
+        @if (currentNote.content) {
+          <div class="note-content" [innerHTML]="currentNote.content"></div>
+        } @else {
+          <div class="note-content empty-note">No additional text</div>
+        }
+      </article>
+    </div>
+  </div>
+}

@@ -31,13 +31,16 @@
         {{ filteredProjects.length === 1 ? 'project' : 'projects' }}
       </span>
     </div>
-    <div class="toolbar-actions">
-      <button class="primary-button" type="button" (click)="openCreateForm()">
-        <i class="fa-solid fa-plus"></i>
-        New Project
-      </button>
-    </div>
+    @if (permissions.canCreateProjects()) {
+      <div class="toolbar-actions">
+        <button class="primary-button" type="button" (click)="openCreateForm()">
+          <i class="fa-solid fa-plus"></i>
+          New Project
+        </button>
+      </div>
+    }
   </div>
+
   <div class="projects-grid">
     @for (project of filteredProjects; track project.id) {
       <article class="project-card" [class.overdue-card]="isProjectOverdue(project)">
@@ -59,30 +62,38 @@
               </span>
             </div>
           </div>
-          <div class="card-actions">
-            <button
-              class="edit-action"
-              type="button"
-              title="Edit project"
-              (click)="editProject(project)"
-            >
-              <i class="fa-solid fa-pen"></i>
-            </button>
-            <button
-              class="delete-action"
-              type="button"
-              title="Delete project"
-              (click)="requestDeleteProject(project)"
-            >
-              <i class="fa-regular fa-trash-can"></i>
-            </button>
-          </div>
+          @if (permissions.canEditProjects() || permissions.canDeleteProjects()) {
+            <div class="card-actions">
+              @if (permissions.canEditProjects()) {
+                <button
+                  class="edit-action"
+                  type="button"
+                  title="Edit project"
+                  (click)="editProject(project)"
+                >
+                  <i class="fa-solid fa-pen"></i>
+                </button>
+              }
+              @if (permissions.canDeleteProjects()) {
+                <button
+                  class="delete-action"
+                  type="button"
+                  title="Delete project"
+                  (click)="requestDeleteProject(project)"
+                >
+                  <i class="fa-regular fa-trash-can"></i>
+                </button>
+              }
+            </div>
+          }
         </div>
+
         <div class="project-content">
           <h3>{{ project.name }}</h3>
           <span class="client-name">{{ project.clientName || 'Personal Project' }}</span>
           <p>{{ project.description || 'No project description.' }}</p>
         </div>
+
         @if (project.attachments?.length) {
           <button
             type="button"
@@ -92,8 +103,8 @@
             <div>
               <i class="fa-solid fa-paperclip"></i>
               <span>
-                {{ project.attachments?.length }}
-                {{ project.attachments?.length === 1 ? 'attachment' : 'attachments' }}
+                {{ project.attachments!.length }}
+                {{ project.attachments!.length === 1 ? 'attachment' : 'attachments' }}
               </span>
             </div>
             <span class="attachment-view">
@@ -102,6 +113,7 @@
             </span>
           </button>
         }
+
         <div class="project-progress">
           <div class="progress-header">
             <span>Progress</span>
@@ -111,6 +123,7 @@
             <div class="progress-value" [style.width.%]="project.progress"></div>
           </div>
         </div>
+
         <div class="project-footer" [class.overdue]="isProjectOverdue(project)">
           @if (project.dueDate) {
             <span>
@@ -123,22 +136,29 @@
             </span>
           }
         </div>
+
         <a class="open-project" [routerLink]="['/projects', project.id]">
           Open Project
           <i class="fa-solid fa-arrow-right"></i>
         </a>
       </article>
     }
+
     @if (projects.length === 0) {
       <div class="empty-projects">
         <i class="fa-regular fa-folder-open"></i>
         <h3>No projects yet</h3>
-        <p>Create your first project and start managing your work.</p>
-        <button class="primary-button" type="button" (click)="openCreateForm()">
-          Create Project
-        </button>
+        @if (permissions.canCreateProjects()) {
+          <p>Create your first project and start managing your work.</p>
+          <button class="primary-button" type="button" (click)="openCreateForm()">
+            Create Project
+          </button>
+        } @else {
+          <p>There are no projects in this workspace yet.</p>
+        }
       </div>
     }
+
     @if (projects.length > 0 && filteredProjects.length === 0) {
       <div class="empty-projects">
         <i class="fa-solid fa-magnifying-glass"></i>
@@ -149,14 +169,16 @@
   </div>
 </section>
 
-<app-project-form-drawer
-  [open]="drawerOpen"
-  [project]="drawerProject"
-  (closed)="closeProjectDrawer()"
-  (saved)="projectSaved()"
-/>
+@if (permissions.canCreateProjects() || permissions.canEditProjects()) {
+  <app-project-form-drawer
+    [open]="drawerOpen"
+    [project]="drawerProject"
+    (closed)="closeProjectDrawer()"
+    (saved)="projectSaved()"
+  />
+}
 
-@if (projectPendingDeletion) {
+@if (projectPendingDeletion && permissions.canDeleteProjects()) {
   <app-confirmation-dialog
     title="Delete Project?"
     [message]="
@@ -216,9 +238,9 @@
             </div>
             <div class="attachment-gallery-info">
               <strong [title]="attachment.name">{{ attachment.name }}</strong>
-              <span
-                >{{ getFileTypeLabel(attachment) }} · {{ formatFileSize(attachment.size) }}</span
-              >
+              <span>
+                {{ getFileTypeLabel(attachment) }} · {{ formatFileSize(attachment.size) }}
+              </span>
             </div>
           </button>
         }
@@ -237,10 +259,10 @@
           </div>
           <div>
             <strong [title]="previewAttachment.name">{{ previewAttachment.name }}</strong>
-            <span
-              >{{ getFileTypeLabel(previewAttachment) }} ·
-              {{ formatFileSize(previewAttachment.size) }}</span
-            >
+            <span>
+              {{ getFileTypeLabel(previewAttachment) }} ·
+              {{ formatFileSize(previewAttachment.size) }}
+            </span>
           </div>
         </div>
         <button
@@ -252,6 +274,7 @@
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
+
       <div class="file-preview-body">
         @if (isImage(previewAttachment)) {
           <div class="image-preview">
@@ -294,6 +317,7 @@
           </div>
         }
       </div>
+
       <div class="file-preview-footer">
         <div>
           <span>File size</span>

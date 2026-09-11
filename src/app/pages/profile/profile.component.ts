@@ -53,7 +53,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
   constructor() {
     this.topbarService.setPageContext({
       title: 'Profile',
-      description: 'Manage your account and profile',
       icon: 'fa-regular fa-user',
     });
   }

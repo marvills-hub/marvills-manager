@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { MembersComponent } from './members.component';
+import { DiagramEditorComponent } from './diagram-editor.component';
 
-describe('MembersComponent', () => {
-  let component: MembersComponent;
-  let fixture: ComponentFixture<MembersComponent>;
+describe('DiagramEditorComponent', () => {
+  let component: DiagramEditorComponent;
+  let fixture: ComponentFixture<DiagramEditorComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [MembersComponent]
+      imports: [DiagramEditorComponent]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(MembersComponent);
+    fixture = TestBed.createComponent(DiagramEditorComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

@@ -16,9 +16,12 @@ import {
 } from '@angular/fire/firestore';
 import { combineLatest, from, map, Observable, of, switchMap } from 'rxjs';
 import { AppUser } from '../models/app.-user.model';
-import { WorkspaceMember } from '../models/workspace-member.model';
+import {
+  WorkspaceMember,
+  WorkspaceRole,
+  WorkspaceUserType,
+} from '../models/workspace-member.model';
 import { WorkspaceMemberProfile } from '../models/workspace-member-profile.model';
-import { WorkspaceRole } from '../models/workspace-member.model';
 import { WorkspaceService } from './workspace.service';
 
 @Injectable({
@@ -34,7 +37,15 @@ export class WorkspaceMemberService {
         if (!workspace?.id) return of([]);
         const membersRef = collection(this.firestore, 'workspaceMembers');
         const membersQuery = query(membersRef, where('workspaceId', '==', workspace.id));
-        return collectionData(membersQuery, { idField: 'id' }) as Observable<WorkspaceMember[]>;
+        return collectionData(membersQuery, { idField: 'id' }).pipe(
+          map((members) =>
+            (members as WorkspaceMember[]).map((member) => ({
+              ...member,
+              type: member.type || 'worker',
+              status: member.status || 'active',
+            })),
+          ),
+        );
       }),
     );
   }
@@ -45,6 +56,14 @@ export class WorkspaceMemberService {
         if (!members.length) return of([]);
         return combineLatest(
           members.map((member) => {
+            if (!member.userId) {
+              return of({
+                ...member,
+                displayName: member.displayName || member.email,
+                photoURL: '',
+                jobTitle: '',
+              } as WorkspaceMemberProfile);
+            }
             const userRef = doc(this.firestore, `users/${member.userId}`);
             return from(getDoc(userRef)).pipe(
               map((snapshot) => {
@@ -63,7 +82,11 @@ export class WorkspaceMemberService {
     );
   }
 
-  async addMemberByEmail(email: string, role: WorkspaceRole): Promise<void> {
+  async addMemberByEmail(
+    email: string,
+    role: WorkspaceRole,
+    type: WorkspaceUserType = 'worker',
+  ): Promise<void> {
     const workspace = this.workspaceService.currentWorkspace();
     if (!workspace?.id) throw new Error('No workspace selected.');
     if (role === 'owner') throw new Error('Owner cannot be assigned through invitations.');
@@ -87,13 +110,14 @@ export class WorkspaceMemberService {
       email: user.email,
       displayName: user.displayName ?? '',
       role,
+      type,
       status: 'active',
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
   }
 
-  updateRole(memberId: string, role: WorkspaceRole) {
+  updateRole(memberId: string, role: WorkspaceRole): Promise<void> {
     if (role === 'owner') throw new Error('Owner role cannot be assigned here.');
     return updateDoc(doc(this.firestore, `workspaceMembers/${memberId}`), {
       role,
@@ -101,7 +125,27 @@ export class WorkspaceMemberService {
     });
   }
 
-  removeMember(memberId: string) {
+  updateType(memberId: string, type: WorkspaceUserType): Promise<void> {
+    return updateDoc(doc(this.firestore, `workspaceMembers/${memberId}`), {
+      type,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  updateMember(
+    memberId: string,
+    member: Partial<Pick<WorkspaceMember, 'displayName' | 'email' | 'role' | 'type' | 'status'>>,
+  ): Promise<void> {
+    const cleanMember = Object.fromEntries(
+      Object.entries(member).filter(([, value]) => value !== undefined),
+    );
+    return updateDoc(doc(this.firestore, `workspaceMembers/${memberId}`), {
+      ...cleanMember,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  removeMember(memberId: string): Promise<void> {
     return deleteDoc(doc(this.firestore, `workspaceMembers/${memberId}`));
   }
 }

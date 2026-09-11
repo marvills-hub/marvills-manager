@@ -1,8 +1,9 @@
 <header class="topbar">
-  <button class="mobile-menu-button" type="button" (click)="menuToggle.emit()">
-    <i class="fa-solid fa-bars"></i>
-  </button>
-  <div class="topbar-main">
+  <div class="topbar-left">
+    <button class="mobile-menu-button" type="button" (click)="menuToggle.emit()">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+
     @if (topbarService.projectContext(); as project) {
       <div class="project-context">
         <a routerLink="/projects" class="project-back-button" title="Back to projects">
@@ -34,51 +35,42 @@
         <div class="page-context-icon">
           <i [class]="page.icon || 'fa-regular fa-file'"></i>
         </div>
-        <div class="page-context-content">
-          <strong>{{ page.title }}</strong>
-          <span>{{ page.description }}</span>
-        </div>
-        @if (page.action) {
-          @if (page.action.route) {
-            <a class="page-context-action" [routerLink]="page.action.route">
-              @if (page.action.icon) {
-                <i [class]="page.action.icon"></i>
-              }
-              <span>{{ page.action.label }}</span>
-            </a>
-          } @else {
-            <button
-              class="page-context-action"
-              type="button"
-              (click)="topbarService.runPageAction()"
-            >
-              @if (page.action.icon) {
-                <i [class]="page.action.icon"></i>
-              }
-              <span>{{ page.action.label }}</span>
-            </button>
-          }
-        }
+        <strong>{{ page.title }}</strong>
       </div>
     }
+  </div>
+
+  <div class="topbar-center">
     <div class="search-box">
       <i class="fa-solid fa-magnifying-glass"></i>
       <input type="text" placeholder="Search projects or tasks..." />
       <span class="shortcut">Ctrl K</span>
     </div>
   </div>
+
   <div class="topbar-actions">
-    <button class="action-button" type="button" (click)="themeService.toggleTheme()">
+    <a routerLink="/invitations" class="action-button" title="Invitations">
+      <i class="fa-regular fa-envelope"></i>
+    </a>
+
+    <button
+      class="action-button"
+      type="button"
+      title="Toggle theme"
+      (click)="themeService.toggleTheme()"
+    >
       @if (themeService.theme() === 'dark') {
         <i class="fa-regular fa-sun"></i>
       } @else {
         <i class="fa-regular fa-moon"></i>
       }
     </button>
-    <button class="action-button notification" type="button">
+
+    <button class="action-button notification" type="button" title="Notifications">
       <i class="fa-regular fa-bell"></i>
       <span></span>
     </button>
+
     <a routerLink="/profile" class="user" title="Open profile">
       <div class="user-avatar">
         @if (photoURL) {

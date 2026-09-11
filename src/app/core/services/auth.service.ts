@@ -2,9 +2,11 @@ import { inject, Injectable } from '@angular/core';
 import {
   Auth,
   authState,
+  createUserWithEmailAndPassword,
   EmailAuthProvider,
   reauthenticateWithCredential,
   sendEmailVerification,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
   updatePassword,
@@ -48,6 +50,21 @@ export class AuthService {
       });
       throw error;
     }
+  }
+
+  async register(email: string, password: string, displayName: string): Promise<UserCredential> {
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedDisplayName = displayName.trim();
+    const credential = await createUserWithEmailAndPassword(this.auth, normalizedEmail, password);
+    await updateProfile(credential.user, {
+      displayName: normalizedDisplayName,
+    });
+    await this.ensureUserProfile(credential.user);
+    return credential;
+  }
+
+  async resetPassword(email: string): Promise<void> {
+    await sendPasswordResetEmail(this.auth, email.trim().toLowerCase());
   }
 
   async logout(): Promise<void> {

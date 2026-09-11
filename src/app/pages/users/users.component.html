@@ -1,0 +1,474 @@
+<section class="users-page">
+  <div class="users-toolbar">
+    <div class="filters">
+      @for (filter of filters; track filter.value) {
+        <button
+          type="button"
+          [class.active]="activeFilter() === filter.value"
+          (click)="setFilter(filter.value)"
+        >
+          <span>{{ filter.label }}</span>
+          <small>{{ getTypeCount(filter.value) }}</small>
+        </button>
+      }
+    </div>
+    <div class="toolbar-actions">
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input
+          type="text"
+          placeholder="Search users..."
+          [value]="search()"
+          (input)="updateSearch($any($event.target).value)"
+        />
+        @if (search()) {
+          <button type="button" (click)="updateSearch('')" aria-label="Clear search">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        }
+      </div>
+      @if (!search() && activeFilter() === 'all' && permissions.canManageMembers()) {
+        <button type="button" class="empty-add-button" (click)="openCreateUser()">
+          <i class="fa-solid fa-plus"></i>
+          New User
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="state-view">
+      <i class="fa-solid fa-spinner fa-spin"></i>
+      <span>Loading users...</span>
+    </div>
+  } @else if (filteredUsers().length) {
+    <div class="users-list">
+      <div class="users-header">
+        <span>User</span>
+        <span>Type</span>
+        <span>Role</span>
+        <span>Company / Position</span>
+        <span>Status</span>
+        <span class="actions-heading">Actions</span>
+      </div>
+      <div class="users-body">
+        @for (user of filteredUsers(); track user.id) {
+          <div class="user-row" [class.updating]="isUpdating(user)">
+            <div class="user-profile">
+              <div class="user-avatar">
+                @if (user.photoURL) {
+                  <img [src]="user.photoURL" [alt]="user.displayName" />
+                } @else {
+                  <span>{{ getInitials(user) }}</span>
+                }
+              </div>
+              <div class="user-identity">
+                <div class="user-name">
+                  <strong [title]="user.displayName">{{ user.displayName }}</strong>
+                  @if (user.role === 'owner') {
+                    <i class="fa-solid fa-crown" title="Workspace Owner"></i>
+                  }
+                </div>
+                @if (user.email) {
+                  <span [title]="user.email">{{ user.email }}</span>
+                } @else {
+                  <span>No email address</span>
+                }
+              </div>
+            </div>
+
+            <div class="user-type">
+              @if (canEditType(user)) {
+                <div class="inline-select" [attr.data-type]="user.type">
+                  <i
+                    [class]="
+                      user.type === 'client'
+                        ? 'fa-solid fa-briefcase'
+                        : user.type === 'contractor'
+                          ? 'fa-solid fa-screwdriver-wrench'
+                          : user.type === 'guest'
+                            ? 'fa-regular fa-eye'
+                            : 'fa-solid fa-user-gear'
+                    "
+                  ></i>
+                  <select
+                    [value]="user.type"
+                    [disabled]="isUpdating(user)"
+                    (change)="changeType(user, $any($event.target).value)"
+                  >
+                    @for (type of userTypes; track type.value) {
+                      <option [value]="type.value">{{ type.label }}</option>
+                    }
+                  </select>
+                  <i class="fa-solid fa-chevron-down select-arrow"></i>
+                </div>
+              } @else {
+                <span class="type-badge" [attr.data-type]="user.type">
+                  <i
+                    [class]="
+                      user.type === 'client'
+                        ? 'fa-solid fa-briefcase'
+                        : user.type === 'contractor'
+                          ? 'fa-solid fa-screwdriver-wrench'
+                          : user.type === 'guest'
+                            ? 'fa-regular fa-eye'
+                            : 'fa-solid fa-user-gear'
+                    "
+                  ></i>
+                  {{ getTypeLabel(user.type) }}
+                </span>
+              }
+            </div>
+
+            <div class="user-role">
+              @if (canEditRole(user)) {
+                <div class="role-select" [attr.data-role]="user.role">
+                  <select
+                    [value]="user.role"
+                    [disabled]="isUpdating(user)"
+                    (change)="changeRole(user, $any($event.target).value)"
+                  >
+                    @for (role of roles; track role.value) {
+                      <option [value]="role.value">{{ role.label }}</option>
+                    }
+                  </select>
+                  <i class="fa-solid fa-chevron-down"></i>
+                </div>
+              } @else {
+                <span class="role-badge" [attr.data-role]="user.role">
+                  {{ getRoleLabel(user.role) }}
+                  @if (user.source === 'client' || user.source === 'invitation') {
+                    <i
+                      class="fa-solid fa-lock"
+                      [title]="
+                        user.source === 'invitation'
+                          ? 'Role becomes editable after the invitation is accepted'
+                          : 'Client workspace access has not been created'
+                      "
+                    ></i>
+                  }
+                </span>
+              }
+            </div>
+
+            <div class="user-context">
+              @if (user.type === 'client') {
+                <i class="fa-regular fa-building"></i>
+              } @else {
+                <i class="fa-regular fa-id-badge"></i>
+              }
+              <span>{{ getContextLabel(user) }}</span>
+            </div>
+
+            <div class="user-status">
+              <span class="status-badge" [attr.data-status]="user.status">
+                <span class="status-dot"></span>
+                {{ user.status | titlecase }}
+              </span>
+              @if (isUpdating(user)) {
+                <i class="fa-solid fa-spinner fa-spin updating-icon"></i>
+              }
+            </div>
+            <div class="user-actions">
+              @if (canRemoveUser(user)) {
+                <button
+                  type="button"
+                  class="remove-user-button"
+                  [disabled]="isUpdating(user)"
+                  [title]="
+                    user.source === 'invitation'
+                      ? 'Cancel invitation'
+                      : user.source === 'client'
+                        ? 'Delete client'
+                        : 'Remove from workspace'
+                  "
+                  (click)="openRemoveUser(user)"
+                >
+                  @if (isUpdating(user)) {
+                    <i class="fa-solid fa-spinner fa-spin"></i>
+                  } @else {
+                    <i
+                      [class]="
+                        user.source === 'invitation'
+                          ? 'fa-solid fa-envelope-circle-xmark'
+                          : user.source === 'client'
+                            ? 'fa-regular fa-trash-can'
+                            : 'fa-solid fa-user-minus'
+                      "
+                    ></i>
+                  }
+                </button>
+              } @else if (user.role === 'owner') {
+                <span class="protected-user" title="Workspace owner cannot be removed">
+                  <i class="fa-solid fa-shield-halved"></i>
+                </span>
+              } @else {
+                <span class="no-actions">—</span>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  } @else {
+    <div class="state-view">
+      <i class="fa-solid fa-users"></i>
+      <strong>No users found</strong>
+      <span>
+        @if (search() || activeFilter() !== 'all') {
+          Try changing your search or selected filter.
+        } @else {
+          Add your first workspace user.
+        }
+      </span>
+      @if (!search() && activeFilter() === 'all' && permissions.canManageMembers()) {
+        <button type="button" class="empty-add-button" (click)="openCreateUser()">
+          <i class="fa-solid fa-plus"></i>
+          New User
+        </button>
+      }
+    </div>
+  }
+
+  @if (createDrawerOpen() && permissions.canManageMembers()) {
+    <div class="drawer-backdrop" (click)="closeCreateUser()"></div>
+    <aside class="user-drawer">
+      <div class="drawer-header">
+        <div>
+          <h2>New User</h2>
+          <p>Add someone to this workspace.</p>
+        </div>
+        <button
+          type="button"
+          class="close-button"
+          [disabled]="creatingUser()"
+          (click)="closeCreateUser()"
+        >
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form class="drawer-form" [formGroup]="newUserForm" (ngSubmit)="createUser()">
+        <div class="drawer-content">
+          <div class="form-section">
+            <div class="section-heading">
+              <span>User Type</span>
+              <small>Defines what kind of workspace user this is.</small>
+            </div>
+
+            <div class="type-options">
+              @for (type of userTypes; track type.value) {
+                <label
+                  class="type-option"
+                  [class.active]="newUserForm.controls.type.value === type.value"
+                >
+                  <input
+                    type="radio"
+                    formControlName="type"
+                    [value]="type.value"
+                    (change)="onCreateTypeChange()"
+                  />
+                  <span class="type-icon" [attr.data-type]="type.value">
+                    <i [class]="type.icon"></i>
+                  </span>
+                  <span class="type-content">
+                    <strong>{{ type.label }}</strong>
+                    <small>{{ type.description }}</small>
+                  </span>
+                  <span class="radio-indicator">
+                    <span></span>
+                  </span>
+                </label>
+              }
+            </div>
+          </div>
+
+          @if (isClientType()) {
+            <div class="form-section">
+              <div class="section-heading">
+                <span>Client Details</span>
+                <small>Create the client contact for this workspace.</small>
+              </div>
+
+              <div class="form-group">
+                <label>Name <span>*</span></label>
+                <input
+                  type="text"
+                  formControlName="name"
+                  placeholder="Client name"
+                  [class.invalid]="
+                    newUserForm.controls.name.touched && newUserForm.controls.name.invalid
+                  "
+                />
+                @if (newUserForm.controls.name.touched && newUserForm.controls.name.invalid) {
+                  <small class="field-error">Client name is required.</small>
+                }
+              </div>
+
+              <div class="form-group">
+                <label>Company</label>
+                <input
+                  type="text"
+                  formControlName="company"
+                  placeholder="Company or organisation"
+                />
+              </div>
+
+              <div class="form-group">
+                <label>Email</label>
+                <input
+                  type="email"
+                  formControlName="email"
+                  placeholder="client@example.com"
+                  [class.invalid]="
+                    newUserForm.controls.email.touched && newUserForm.controls.email.invalid
+                  "
+                />
+                @if (newUserForm.controls.email.touched && newUserForm.controls.email.invalid) {
+                  <small class="field-error">Enter a valid email address.</small>
+                }
+              </div>
+
+              <div class="form-group">
+                <label>Phone</label>
+                <input type="text" formControlName="phone" placeholder="Phone number" />
+              </div>
+
+              <div class="client-access-note">
+                <i class="fa-solid fa-circle-info"></i>
+                <div>
+                  <strong>Client workspace access</strong>
+                  <span>
+                    This creates the client record only. Workspace login access can be added later
+                    through an invitation.
+                  </span>
+                </div>
+              </div>
+            </div>
+          } @else {
+            <div class="form-section">
+              <div class="section-heading">
+                <span>Workspace Access</span>
+                <small
+                  >Existing accounts are added directly. New users receive a pending
+                  invitation.</small
+                >
+              </div>
+              <div class="form-group">
+                <label>Email <span>*</span></label>
+                <input
+                  type="email"
+                  formControlName="email"
+                  placeholder="user@example.com"
+                  [class.invalid]="
+                    newUserForm.controls.email.touched && newUserForm.controls.email.invalid
+                  "
+                />
+                @if (newUserForm.controls.email.touched && newUserForm.controls.email.invalid) {
+                  <small class="field-error">Enter a valid account email.</small>
+                }
+              </div>
+
+              <div class="form-group">
+                <label>Role <span>*</span></label>
+                <div class="form-select">
+                  <select formControlName="role">
+                    @for (role of roles; track role.value) {
+                      <option [value]="role.value">{{ role.label }}</option>
+                    }
+                  </select>
+                  <i class="fa-solid fa-chevron-down"></i>
+                </div>
+
+                @for (role of roles; track role.value) {
+                  @if (newUserForm.controls.role.value === role.value) {
+                    <small class="field-hint">{{ role.description }}</small>
+                  }
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="drawer-footer">
+          <button
+            type="button"
+            class="secondary-button"
+            [disabled]="creatingUser()"
+            (click)="closeCreateUser()"
+          >
+            Cancel
+          </button>
+          <button type="submit" class="primary-button" [disabled]="creatingUser()">
+            @if (creatingUser()) {
+              <i class="fa-solid fa-spinner fa-spin"></i>
+              Adding...
+            } @else {
+              <i class="fa-solid fa-plus"></i>
+              {{ isClientType() ? 'Add Client' : 'Add User' }}
+            }
+          </button>
+        </div>
+      </form>
+    </aside>
+  }
+  @if (removalUser(); as user) {
+    @if (canRemoveUser(user)) {
+      <div class="confirm-backdrop" (click)="closeRemoveUser()"></div>
+      <div class="confirm-dialog">
+        <div class="confirm-icon">
+          <i
+            [class]="
+              user.source === 'invitation'
+                ? 'fa-solid fa-envelope-circle-xmark'
+                : user.source === 'client'
+                  ? 'fa-regular fa-trash-can'
+                  : 'fa-solid fa-user-minus'
+            "
+          ></i>
+        </div>
+        <div class="confirm-content">
+          <h3>{{ getRemovalTitle(user) }}</h3>
+          <p>{{ getRemovalMessage(user) }}</p>
+          <div class="confirm-user">
+            <div class="confirm-avatar">
+              @if (user.photoURL) {
+                <img [src]="user.photoURL" [alt]="user.displayName" />
+              } @else {
+                <span>{{ getInitials(user) }}</span>
+              }
+            </div>
+            <div>
+              <strong>{{ user.displayName }}</strong>
+              <span>{{ user.email || getContextLabel(user) }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="confirm-actions">
+          <button
+            type="button"
+            class="secondary-button"
+            [disabled]="removingUser()"
+            (click)="closeRemoveUser()"
+          >
+            Keep User
+          </button>
+          <button
+            type="button"
+            class="danger-button"
+            [disabled]="removingUser()"
+            (click)="confirmRemoveUser()"
+          >
+            @if (removingUser()) {
+              <i class="fa-solid fa-spinner fa-spin"></i>
+              Removing...
+            } @else {
+              <i class="fa-regular fa-trash-can"></i>
+              {{ getRemovalButtonLabel(user) }}
+            }
+          </button>
+        </div>
+      </div>
+    }
+  }
+</section>

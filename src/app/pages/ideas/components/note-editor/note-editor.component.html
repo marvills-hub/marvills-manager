@@ -1,0 +1,141 @@
+@if (open) {
+  <div class="note-editor-backdrop" (click)="close()">
+    <div class="note-editor-dialog" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <span>{{ editing ? 'EDIT NOTE' : 'NEW BOARD NOTE' }}</span>
+          <h2>{{ editing ? 'Update Note' : 'Pin a Note' }}</h2>
+        </div>
+
+        <button type="button" title="Close" [disabled]="saving" (click)="close()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form [formGroup]="noteForm" (ngSubmit)="submit()">
+        <div class="form-group">
+          <label>Title</label>
+
+          <input type="text" formControlName="title" placeholder="What are you thinking about?" />
+
+          @if (noteForm.controls.title.invalid && noteForm.controls.title.touched) {
+            <small class="form-error">A note title is required.</small>
+          }
+        </div>
+
+        <div class="form-group">
+          <div class="field-heading">
+            <label>Description</label>
+
+            <button type="button" [disabled]="saving || !canManage" (click)="openRichEditor()">
+              <i class="fa-solid fa-expand"></i>
+              Open Rich Text Editor
+            </button>
+          </div>
+
+          <textarea
+            rows="5"
+            formControlName="content"
+            placeholder="Write a quick note..."
+          ></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Paper Design</label>
+
+          <div class="design-grid">
+            @for (design of noteDesigns; track design.id) {
+              <button
+                type="button"
+                class="design-option"
+                [class.active]="noteForm.controls.design.value === design.id"
+                (click)="selectDesign(design.id)"
+              >
+                <span class="paper-preview" [class]="design.id">
+                  <span class="preview-line long"></span>
+                  <span class="preview-line"></span>
+                  <span class="preview-line short"></span>
+                </span>
+
+                <span class="design-name">{{ design.name }}</span>
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Pin Design</label>
+
+          <div class="pin-grid">
+            @for (pin of notePins; track pin.id) {
+              <button
+                type="button"
+                class="pin-option"
+                [class.active]="noteForm.controls.pin.value === pin.id"
+                (click)="selectPin(pin.id)"
+              >
+                <i [class]="pin.icon"></i>
+                <span>{{ pin.name }}</span>
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="secondary-button" type="button" [disabled]="saving" (click)="close()">
+            Cancel
+          </button>
+
+          <button class="primary-button" type="submit" [disabled]="saving || !canManage">
+            @if (saving) {
+              <i class="fa-solid fa-spinner fa-spin"></i>
+              Saving...
+            } @else {
+              <i class="fa-solid fa-thumbtack"></i>
+              {{ editing ? 'Save Changes' : 'Pin Note' }}
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+
+    @if (richEditorOpen) {
+      <div class="rich-editor-backdrop" (click)="closeRichEditor()">
+        <div class="rich-editor-dialog" (click)="$event.stopPropagation()">
+          <div class="rich-editor-header">
+            <div>
+              <span>RICH TEXT EDITOR</span>
+              <h2>{{ noteForm.controls.title.value || 'Untitled Note' }}</h2>
+            </div>
+
+            <button type="button" title="Close editor" (click)="closeRichEditor()">
+              <i class="fa-solid fa-compress"></i>
+            </button>
+          </div>
+
+          <div class="rich-editor-workspace">
+            <app-rich-text-editor
+              [value]="noteForm.controls.content.value"
+              placeholder="Write your note..."
+              [disabled]="saving || !canManage"
+              (valueChange)="updateContent($event)"
+              (closed)="closeRichEditor()"
+            />
+          </div>
+
+          <div class="rich-editor-footer">
+            <span>
+              <i class="fa-solid fa-circle-info"></i>
+              Your changes will remain in the note after closing the editor.
+            </span>
+
+            <button class="primary-button" type="button" (click)="closeRichEditor()">
+              <i class="fa-solid fa-check"></i>
+              Done Editing
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+}

@@ -1,6 +1,6 @@
+import { CdkDragDrop, CdkDragEnd, DragDropModule } from '@angular/cdk/drag-drop';
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, HostListener, Input, Output } from '@angular/core';
-import { CdkDragDrop, CdkDragEnd, DragDropModule } from '@angular/cdk/drag-drop';
 import { Priority, Project } from '../../../core/models/project.model';
 import { ProjectTask, TaskStatus } from '../../../core/models/task.model';
 import { TaskStatusDefinition } from '../../../core/models/task-status-definition.model';
@@ -42,6 +42,7 @@ export class KanbanViewComponent {
   @Input() members: WorkspaceMemberProfile[] = [];
   @Input() statuses: TaskStatusDefinition[] = [];
   @Input() updatingTaskId: string | null = null;
+  @Input() readOnly = false;
   @Output() edit = new EventEmitter<ProjectTask>();
   @Output() delete = new EventEmitter<ProjectTask>();
   @Output() attachments = new EventEmitter<{ task: ProjectTask; event: MouseEvent }>();
@@ -49,15 +50,21 @@ export class KanbanViewComponent {
   @Output() statusUpdate = new EventEmitter<KanbanTaskStatusUpdate>();
   @Output() priorityUpdate = new EventEmitter<KanbanTaskPriorityUpdate>();
   @Output() assigneeUpdate = new EventEmitter<KanbanTaskAssigneeUpdate>();
+
   openStatusTaskId: string | null = null;
   openPriorityTaskId: string | null = null;
   openAssigneeTaskId: string | null = null;
+
   readonly priorities: { value: Priority; label: string }[] = [
     { value: 'low', label: 'Low' },
     { value: 'medium', label: 'Medium' },
     { value: 'high', label: 'High' },
     { value: 'urgent', label: 'Urgent' },
   ];
+
+  get assignableMembers(): WorkspaceMemberProfile[] {
+    return this.members.filter((member) => !!member.userId);
+  }
 
   @HostListener('document:click')
   closeInlineMenus(): void {
@@ -73,6 +80,7 @@ export class KanbanViewComponent {
   }
 
   drop(event: CdkDragDrop<ProjectTask[]>, status: TaskStatusDefinition): void {
+    if (this.readOnly) return;
     const value = this.getStatusValue(status);
     const task = event.item.data as ProjectTask;
     if (!task || task.status !== value) return;
@@ -87,6 +95,10 @@ export class KanbanViewComponent {
   }
 
   dragEnded(event: CdkDragEnd, task: ProjectTask): void {
+    if (this.readOnly) {
+      event.source.reset();
+      return;
+    }
     const cardElement = event.source.element.nativeElement;
     const cardRect = cardElement.getBoundingClientRect();
     const cardCenterX = cardRect.left + cardRect.width / 2;
@@ -155,7 +167,7 @@ export class KanbanViewComponent {
 
   toggleStatusMenu(task: ProjectTask, event: MouseEvent): void {
     event.stopPropagation();
-    if (!task.id || this.updatingTaskId === task.id) return;
+    if (this.readOnly || !task.id || this.updatingTaskId === task.id) return;
     this.openPriorityTaskId = null;
     this.openAssigneeTaskId = null;
     this.openStatusTaskId = this.openStatusTaskId === task.id ? null : task.id;
@@ -163,6 +175,7 @@ export class KanbanViewComponent {
 
   selectStatus(task: ProjectTask, status: TaskStatusDefinition, event: MouseEvent): void {
     event.stopPropagation();
+    if (this.readOnly) return;
     this.closeMenus();
     const value = this.getStatusValue(status);
     if (value === task.status || this.updatingTaskId === task.id) return;
@@ -171,7 +184,7 @@ export class KanbanViewComponent {
 
   togglePriorityMenu(task: ProjectTask, event: MouseEvent): void {
     event.stopPropagation();
-    if (!task.id || this.updatingTaskId === task.id) return;
+    if (this.readOnly || !task.id || this.updatingTaskId === task.id) return;
     this.openStatusTaskId = null;
     this.openAssigneeTaskId = null;
     this.openPriorityTaskId = this.openPriorityTaskId === task.id ? null : task.id;
@@ -179,6 +192,7 @@ export class KanbanViewComponent {
 
   selectPriority(task: ProjectTask, priority: Priority, event: MouseEvent): void {
     event.stopPropagation();
+    if (this.readOnly) return;
     this.closeMenus();
     if (priority === task.priority || this.updatingTaskId === task.id) return;
     this.priorityUpdate.emit({ task, priority });
@@ -186,25 +200,30 @@ export class KanbanViewComponent {
 
   toggleAssigneeMenu(task: ProjectTask, event: MouseEvent): void {
     event.stopPropagation();
-    if (!task.id || this.updatingTaskId === task.id) return;
+    if (this.readOnly || !task.id || this.updatingTaskId === task.id) return;
     this.openStatusTaskId = null;
     this.openPriorityTaskId = null;
     this.openAssigneeTaskId = this.openAssigneeTaskId === task.id ? null : task.id;
   }
 
-  toggleTaskAssignee(task: ProjectTask, assigneeId: string, event: MouseEvent): void {
+  toggleTaskAssignee(task: ProjectTask, userId: string | undefined, event: Event): void {
     event.stopPropagation();
-    if (!task.id || this.updatingTaskId === task.id) return;
+    if (this.readOnly || !userId || !task.id || this.updatingTaskId === task.id) return;
     const currentIds = this.getTaskAssigneeIds(task);
-    const assigneeIds = currentIds.includes(assigneeId)
-      ? currentIds.filter((id) => id !== assigneeId)
-      : [...currentIds, assigneeId];
+    const assigneeIds = currentIds.includes(userId)
+      ? currentIds.filter((id) => id !== userId)
+      : [...currentIds, userId];
     this.assigneeUpdate.emit({ task, assigneeIds });
   }
 
   clearAssignees(task: ProjectTask, event: MouseEvent): void {
     event.stopPropagation();
-    if (!task.id || this.updatingTaskId === task.id || !this.getTaskAssigneeIds(task).length)
+    if (
+      this.readOnly ||
+      !task.id ||
+      this.updatingTaskId === task.id ||
+      !this.getTaskAssigneeIds(task).length
+    )
       return;
     this.assigneeUpdate.emit({ task, assigneeIds: [] });
   }
@@ -233,7 +252,8 @@ export class KanbanViewComponent {
     return this.getTaskAssigneeIds(task).length;
   }
 
-  isAssigned(task: ProjectTask, userId: string): boolean {
+  isAssigned(task: ProjectTask, userId?: string): boolean {
+    if (!userId) return false;
     return this.getTaskAssigneeIds(task).includes(userId);
   }
 
@@ -247,11 +267,13 @@ export class KanbanViewComponent {
 
   editTask(task: ProjectTask, event?: MouseEvent): void {
     event?.stopPropagation();
+    if (this.readOnly) return;
     this.edit.emit(task);
   }
 
   deleteTask(task: ProjectTask, event?: MouseEvent): void {
     event?.stopPropagation();
+    if (this.readOnly) return;
     this.delete.emit(task);
   }
 
@@ -292,7 +314,7 @@ export class KanbanViewComponent {
         item.displayName?.trim().toLowerCase() === legacyName ||
         item.email.trim().toLowerCase() === legacyName,
     );
-    return member ? [member.userId] : [];
+    return member?.userId ? [member.userId] : [];
   }
 
   private closeMenus(): void {

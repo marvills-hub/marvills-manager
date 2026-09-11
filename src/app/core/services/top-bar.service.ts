@@ -7,18 +7,9 @@ export interface TopbarProjectContext {
   priority: string;
 }
 
-export interface TopbarPageAction {
-  label: string;
-  icon?: string;
-  route?: string;
-  handler?: () => void;
-}
-
 export interface TopbarPageContext {
   title: string;
-  description: string;
   icon?: string;
-  action?: TopbarPageAction;
 }
 
 @Injectable({
@@ -44,9 +35,5 @@ export class TopbarService {
 
   clearPageContext(): void {
     this.pageContext.set(null);
-  }
-
-  runPageAction(): void {
-    this.pageContext()?.action?.handler?.();
   }
 }

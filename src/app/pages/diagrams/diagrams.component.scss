@@ -1,0 +1,472 @@
+.diagrams-page {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 10px;
+  overflow: hidden;
+}
+
+.diagram-sidebar,
+.diagram-workspace {
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.diagram-sidebar {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-header {
+  min-height: 58px;
+  padding: 10px 11px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  > div {
+    span {
+      color: var(--primary);
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+    h3 {
+      margin: 2px 0 0;
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+  }
+  > button {
+    width: 31px;
+    height: 31px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--primary);
+    background: var(--primary-soft);
+    cursor: pointer;
+  }
+}
+
+.diagram-list {
+  min-height: 0;
+  padding: 7px;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.diagram-item {
+  min-height: 52px;
+  padding: 7px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: 0.18s ease;
+  &:hover,
+  &.active {
+    border-color: var(--border);
+    background: var(--surface-2);
+  }
+  &.active {
+    border-color: rgba(83, 111, 255, 0.35);
+    background: var(--primary-soft);
+  }
+}
+
+.diagram-icon {
+  width: 31px;
+  height: 31px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 6px;
+  color: var(--primary);
+  background: var(--primary-soft);
+  font-size: 11px;
+}
+
+.diagram-details {
+  min-width: 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  strong {
+    overflow: hidden;
+    color: var(--text-primary);
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  span {
+    color: var(--text-muted);
+    font-size: 8px;
+  }
+}
+
+.diagram-actions {
+  display: none;
+  align-items: center;
+  gap: 2px;
+  .diagram-item:hover & {
+    display: flex;
+  }
+  button {
+    width: 25px;
+    height: 25px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 5px;
+    color: var(--text-muted);
+    background: transparent;
+    font-size: 8px;
+    cursor: pointer;
+    &:hover {
+      color: var(--primary);
+      background: var(--surface-hover);
+    }
+    &:last-child:hover {
+      color: var(--danger);
+    }
+  }
+}
+
+.sidebar-state {
+  min-height: 160px;
+  padding: 20px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 7px;
+  color: var(--text-muted);
+  text-align: center;
+  > i {
+    font-size: 20px;
+  }
+  strong {
+    color: var(--text-secondary);
+    font-size: 10px;
+  }
+  span {
+    max-width: 150px;
+    font-size: 8px;
+    line-height: 1.5;
+  }
+}
+
+.create-empty {
+  min-height: 32px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 6px;
+  color: #fff;
+  background: var(--primary);
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.diagram-workspace {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.workspace-header {
+  min-height: 58px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.diagram-title {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  > i {
+    color: var(--primary);
+    font-size: 15px;
+  }
+  > div {
+    min-width: 0;
+    span {
+      color: var(--text-muted);
+      font-size: 7px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+    h2 {
+      margin: 2px 0 0;
+      overflow: hidden;
+      color: var(--text-primary);
+      font-size: 13px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+}
+
+.unsaved-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #e7ad54;
+  font-size: 8px;
+  i {
+    font-size: 5px;
+  }
+}
+
+.save-button {
+  min-height: 34px;
+  padding: 0 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 6px;
+  color: #fff;
+  background: var(--primary);
+  font-size: 9px;
+  cursor: pointer;
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.workspace-empty {
+  margin: auto;
+  max-width: 430px;
+  padding: 30px;
+  text-align: center;
+  .empty-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 12px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(83, 111, 255, 0.24);
+    border-radius: 14px;
+    color: var(--primary);
+    background: var(--primary-soft);
+    font-size: 21px;
+  }
+  h2 {
+    margin: 0 0 6px;
+    color: var(--text-primary);
+    font-size: 17px;
+  }
+  p {
+    margin: 0 auto 16px;
+    color: var(--text-secondary);
+    font-size: 10px;
+    line-height: 1.6;
+  }
+  > button {
+    min-height: 38px;
+    padding: 0 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 0;
+    border-radius: 7px;
+    color: #fff;
+    background: var(--primary);
+    font-size: 10px;
+    cursor: pointer;
+  }
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  padding: 20px;
+  display: grid;
+  place-items: center;
+  background: rgba(2, 7, 15, 0.8);
+  backdrop-filter: blur(5px);
+}
+
+.modal-dialog,
+.confirm-dialog {
+  width: min(400px, 100%);
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.modal-header {
+  margin-bottom: 14px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  > div {
+    span {
+      color: var(--primary);
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+    h2 {
+      margin: 3px 0 0;
+      color: var(--text-primary);
+      font-size: 16px;
+    }
+  }
+  > button {
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    background: var(--surface-2);
+    cursor: pointer;
+  }
+}
+
+.modal-dialog {
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    color: var(--text-secondary);
+    font-size: 9px;
+  }
+  input {
+    min-height: 40px;
+    padding: 0 10px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    outline: 0;
+    color: var(--text-primary);
+    background: var(--surface-2);
+    font-size: 11px;
+    &:focus {
+      border-color: var(--primary);
+    }
+  }
+}
+
+.confirm-dialog {
+  text-align: center;
+  h2 {
+    margin: 9px 0 5px;
+    color: var(--text-primary);
+    font-size: 15px;
+  }
+  p {
+    margin: 0 0 15px;
+    color: var(--text-secondary);
+    font-size: 9px;
+    line-height: 1.55;
+    strong {
+      color: var(--text-primary);
+    }
+  }
+}
+
+.delete-icon {
+  width: 42px;
+  height: 42px;
+  margin: auto;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  color: var(--danger);
+  background: rgba(255, 80, 90, 0.08);
+  font-size: 15px;
+}
+
+.modal-actions {
+  margin-top: 15px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.primary-button,
+.secondary-button,
+.danger-button {
+  min-height: 37px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 7px;
+  font-size: 9px;
+  cursor: pointer;
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.primary-button {
+  border: 0;
+  color: #fff;
+  background: var(--primary);
+}
+
+.secondary-button {
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  background: var(--surface-2);
+}
+
+.danger-button {
+  border: 0;
+  color: #fff;
+  background: var(--danger);
+}
+
+@media (max-width: 850px) {
+  .diagrams-page {
+    grid-template-columns: 180px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 650px) {
+  .diagrams-page {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  .diagram-sidebar {
+    max-height: 220px;
+  }
+
+  .diagram-workspace {
+    min-height: 650px;
+  }
+}

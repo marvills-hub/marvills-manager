@@ -355,7 +355,7 @@ export class ProjectDetailsComponent implements OnInit, OnDestroy {
         item.displayName?.trim().toLowerCase() === legacyName ||
         item.email.trim().toLowerCase() === legacyName,
     );
-    return member ? [member.userId] : [];
+    return member?.userId ? [member.userId] : [];
   }
 
   private getLegacyStatusName(status: string): string {

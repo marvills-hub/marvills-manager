@@ -1,6 +1,6 @@
+import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, HostListener, Input, Output } from '@angular/core';
-import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { Priority, Project } from '../../../core/models/project.model';
 import { ProjectTask, TaskStatus } from '../../../core/models/task.model';
 import { TaskStatusDefinition } from '../../../core/models/task-status-definition.model';
@@ -42,6 +42,7 @@ export class ListViewComponent {
   @Input() statuses: TaskStatusDefinition[] = [];
   @Input() updatingTaskId: string | null = null;
   @Input() members: WorkspaceMemberProfile[] = [];
+  @Input() readOnly = false;
   @Output() assigneeUpdate = new EventEmitter<TaskAssigneeUpdate>();
   @Output() edit = new EventEmitter<ProjectTask>();
   @Output() delete = new EventEmitter<ProjectTask>();
@@ -63,6 +64,7 @@ export class ListViewComponent {
   ];
 
   get connectedDropLists(): string[] {
+    if (this.readOnly) return [];
     return this.statuses
       .filter((status) => !!status.id)
       .map((status) => this.getDropListId(status.id!));
@@ -77,6 +79,10 @@ export class ListViewComponent {
         color: status.color,
         tasks: this.getTasksByStatus(status.id),
       }));
+  }
+
+  get assignableMembers(): WorkspaceMemberProfile[] {
+    return this.members.filter((member) => !!member.userId);
   }
 
   @HostListener('document:click')
@@ -101,6 +107,7 @@ export class ListViewComponent {
   }
 
   drop(event: CdkDragDrop<ProjectTask[]>, status: TaskStatus): void {
+    if (this.readOnly) return;
     const task = event.item.data as ProjectTask;
     if (!task) return;
     if (event.previousContainer === event.container && event.previousIndex === event.currentIndex)
@@ -116,7 +123,7 @@ export class ListViewComponent {
 
   toggleStatusMenu(task: ProjectTask, event: MouseEvent): void {
     event.stopPropagation();
-    if (!task.id || this.updatingTaskId === task.id) return;
+    if (this.readOnly || !task.id || this.updatingTaskId === task.id) return;
     this.openPriorityTaskId = null;
     this.openAssigneeTaskId = null;
     this.openStatusTaskId = this.openStatusTaskId === task.id ? null : task.id;
@@ -124,6 +131,7 @@ export class ListViewComponent {
 
   selectStatus(task: ProjectTask, status: TaskStatus, event: MouseEvent): void {
     event.stopPropagation();
+    if (this.readOnly) return;
     this.closeMenus();
     if (status === task.status || this.updatingTaskId === task.id) return;
     this.statusUpdate.emit({ task, status });
@@ -131,7 +139,7 @@ export class ListViewComponent {
 
   togglePriorityMenu(task: ProjectTask, event: MouseEvent): void {
     event.stopPropagation();
-    if (!task.id || this.updatingTaskId === task.id) return;
+    if (this.readOnly || !task.id || this.updatingTaskId === task.id) return;
     this.openStatusTaskId = null;
     this.openAssigneeTaskId = null;
     this.openPriorityTaskId = this.openPriorityTaskId === task.id ? null : task.id;
@@ -139,6 +147,7 @@ export class ListViewComponent {
 
   selectPriority(task: ProjectTask, priority: Priority, event: MouseEvent): void {
     event.stopPropagation();
+    if (this.readOnly) return;
     this.closeMenus();
     if (priority === task.priority || this.updatingTaskId === task.id) return;
     this.priorityUpdate.emit({ task, priority });
@@ -146,25 +155,30 @@ export class ListViewComponent {
 
   toggleAssigneeMenu(task: ProjectTask, event: MouseEvent): void {
     event.stopPropagation();
-    if (!task.id || this.updatingTaskId === task.id) return;
+    if (this.readOnly || !task.id || this.updatingTaskId === task.id) return;
     this.openStatusTaskId = null;
     this.openPriorityTaskId = null;
     this.openAssigneeTaskId = this.openAssigneeTaskId === task.id ? null : task.id;
   }
 
-  toggleTaskAssignee(task: ProjectTask, assigneeId: string, event: MouseEvent): void {
+  toggleTaskAssignee(task: ProjectTask, userId: string | undefined, event: Event): void {
     event.stopPropagation();
-    if (!task.id || this.updatingTaskId === task.id) return;
+    if (this.readOnly || !userId || !task.id || this.updatingTaskId === task.id) return;
     const currentIds = this.getTaskAssigneeIds(task);
-    const assigneeIds = currentIds.includes(assigneeId)
-      ? currentIds.filter((id) => id !== assigneeId)
-      : [...currentIds, assigneeId];
+    const assigneeIds = currentIds.includes(userId)
+      ? currentIds.filter((id) => id !== userId)
+      : [...currentIds, userId];
     this.assigneeUpdate.emit({ task, assigneeIds });
   }
 
   clearAssignees(task: ProjectTask, event: MouseEvent): void {
     event.stopPropagation();
-    if (!task.id || this.updatingTaskId === task.id || !this.getTaskAssigneeIds(task).length)
+    if (
+      this.readOnly ||
+      !task.id ||
+      this.updatingTaskId === task.id ||
+      !this.getTaskAssigneeIds(task).length
+    )
       return;
     this.assigneeUpdate.emit({ task, assigneeIds: [] });
   }
@@ -193,7 +207,8 @@ export class ListViewComponent {
     return this.getTaskAssigneeIds(task).length;
   }
 
-  isAssigned(task: ProjectTask, userId: string): boolean {
+  isAssigned(task: ProjectTask, userId?: string): boolean {
+    if (!userId) return false;
     return this.getTaskAssigneeIds(task).includes(userId);
   }
 
@@ -207,11 +222,13 @@ export class ListViewComponent {
 
   editTask(task: ProjectTask, event?: MouseEvent): void {
     event?.stopPropagation();
+    if (this.readOnly) return;
     this.edit.emit(task);
   }
 
   deleteTask(task: ProjectTask, event?: MouseEvent): void {
     event?.stopPropagation();
+    if (this.readOnly) return;
     this.delete.emit(task);
   }
 
@@ -269,7 +286,7 @@ export class ListViewComponent {
         item.displayName?.trim().toLowerCase() === legacyName ||
         item.email.trim().toLowerCase() === legacyName,
     );
-    return member ? [member.userId] : [];
+    return member?.userId ? [member.userId] : [];
   }
 
   private closeMenus(): void {

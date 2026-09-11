@@ -1,0 +1,254 @@
+<section class="diagrams-page">
+  <aside class="diagram-sidebar">
+    <div class="sidebar-header">
+      <div>
+        <span>WORKSPACE</span>
+        <h3>Diagrams</h3>
+      </div>
+
+      @if (permissions.canManageContent()) {
+        <button type="button" title="New diagram" (click)="openCreateDialog()">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+      }
+    </div>
+
+    <div class="diagram-list">
+      @if (loading) {
+        <div class="sidebar-state">
+          <i class="fa-solid fa-spinner fa-spin"></i>
+          <span>Loading diagrams...</span>
+        </div>
+      } @else {
+        @for (diagram of diagrams; track diagram.id) {
+          <div
+            class="diagram-item"
+            [class.active]="selectedDiagram?.id === diagram.id"
+            (click)="selectDiagram(diagram)"
+          >
+            <div class="diagram-icon">
+              <i class="fa-solid fa-diagram-project"></i>
+            </div>
+
+            <div class="diagram-details">
+              <strong>{{ diagram.name }}</strong>
+              <span>
+                {{ diagram.nodes.length || 0 }} nodes · {{ diagram.connections.length || 0 }} links
+              </span>
+            </div>
+
+            @if (permissions.canManageContent()) {
+              <div class="diagram-actions">
+                <button
+                  type="button"
+                  title="Rename"
+                  (click)="$event.stopPropagation(); openRenameDialog(diagram)"
+                >
+                  <i class="fa-solid fa-pen"></i>
+                </button>
+
+                <button
+                  type="button"
+                  title="Delete"
+                  (click)="$event.stopPropagation(); openDeleteDiagram(diagram)"
+                >
+                  <i class="fa-regular fa-trash-can"></i>
+                </button>
+              </div>
+            }
+          </div>
+        } @empty {
+          <div class="sidebar-state">
+            <i class="fa-solid fa-diagram-project"></i>
+            <strong>No diagrams yet</strong>
+            <span>Create your first workspace diagram.</span>
+
+            @if (permissions.canManageContent()) {
+              <button class="create-empty" type="button" (click)="openCreateDialog()">
+                <i class="fa-solid fa-plus"></i>
+                New Diagram
+              </button>
+            }
+          </div>
+        }
+      }
+    </div>
+  </aside>
+
+  <main class="diagram-workspace">
+    @if (selectedDiagram) {
+      <div class="workspace-header">
+        <div class="diagram-title">
+          <i class="fa-solid fa-diagram-project"></i>
+
+          <div>
+            <span>DIAGRAM</span>
+            <h2>{{ selectedDiagram.name }}</h2>
+          </div>
+
+          @if (dirty) {
+            <span class="unsaved-indicator">
+              <i class="fa-solid fa-circle"></i>
+              Unsaved
+            </span>
+          }
+        </div>
+
+        @if (permissions.canManageContent()) {
+          <button
+            class="save-button"
+            type="button"
+            [disabled]="!dirty || saving"
+            (click)="saveDiagram()"
+          >
+            @if (saving) {
+              <i class="fa-solid fa-spinner fa-spin"></i>
+              Saving...
+            } @else {
+              <i class="fa-regular fa-floppy-disk"></i>
+              Save Diagram
+            }
+          </button>
+        }
+      </div>
+
+      <app-diagram-editor
+        [nodes]="selectedDiagram.nodes"
+        [connections]="selectedDiagram.connections"
+        [canManage]="permissions.canManageContent()"
+        (graphChange)="updateGraph($event)"
+      />
+    } @else {
+      <div class="workspace-empty">
+        <div class="empty-icon">
+          <i class="fa-solid fa-diagram-project"></i>
+        </div>
+
+        <h2>Visualize your systems</h2>
+        <p>
+          Create diagrams for app architecture, workflows, database relationships and product ideas.
+        </p>
+
+        @if (permissions.canManageContent()) {
+          <button type="button" (click)="openCreateDialog()">
+            <i class="fa-solid fa-plus"></i>
+            Create Diagram
+          </button>
+        }
+      </div>
+    }
+  </main>
+
+  @if (createDialogOpen) {
+    <div class="modal-backdrop" (click)="closeCreateDialog()">
+      <div class="modal-dialog" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div>
+            <span>NEW DIAGRAM</span>
+            <h2>Create Diagram</h2>
+          </div>
+
+          <button type="button" (click)="closeCreateDialog()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <label>
+          Diagram Name
+          <input
+            type="text"
+            [(ngModel)]="newDiagramName"
+            placeholder="e.g. CaféCraft Architecture"
+            (keyup.enter)="createDiagram()"
+          />
+        </label>
+
+        <div class="modal-actions">
+          <button class="secondary-button" type="button" (click)="closeCreateDialog()">
+            Cancel
+          </button>
+
+          <button
+            class="primary-button"
+            type="button"
+            [disabled]="!newDiagramName.trim() || creating"
+            (click)="createDiagram()"
+          >
+            @if (creating) {
+              <i class="fa-solid fa-spinner fa-spin"></i>
+              Creating...
+            } @else {
+              <i class="fa-solid fa-plus"></i>
+              Create
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (renameDialogOpen) {
+    <div class="modal-backdrop" (click)="closeRenameDialog()">
+      <div class="modal-dialog" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div>
+            <span>RENAME DIAGRAM</span>
+            <h2>Rename Diagram</h2>
+          </div>
+
+          <button type="button" (click)="closeRenameDialog()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <label>
+          Diagram Name
+          <input type="text" [(ngModel)]="renameValue" (keyup.enter)="renameDiagram()" />
+        </label>
+
+        <div class="modal-actions">
+          <button class="secondary-button" type="button" (click)="closeRenameDialog()">
+            Cancel
+          </button>
+
+          <button
+            class="primary-button"
+            type="button"
+            [disabled]="!renameValue.trim()"
+            (click)="renameDiagram()"
+          >
+            Save Name
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (deletingDiagram; as diagram) {
+    <div class="modal-backdrop" (click)="closeDeleteDialog()">
+      <div class="confirm-dialog" (click)="$event.stopPropagation()">
+        <div class="delete-icon">
+          <i class="fa-regular fa-trash-can"></i>
+        </div>
+
+        <h2>Delete diagram?</h2>
+
+        <p>
+          <strong>{{ diagram.name }}</strong> and all of its nodes and connections will be
+          permanently deleted.
+        </p>
+
+        <div class="modal-actions">
+          <button class="secondary-button" type="button" (click)="closeDeleteDialog()">
+            Cancel
+          </button>
+
+          <button class="danger-button" type="button" (click)="confirmDeleteDiagram()">
+            <i class="fa-regular fa-trash-can"></i>
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</section>

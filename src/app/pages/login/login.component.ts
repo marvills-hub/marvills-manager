@@ -1,15 +1,3 @@
-// import { Component } from '@angular/core';
-
-// @Component({
-//   selector: 'app-login',
-//   imports: [],
-//   templateUrl: './login.component.html',
-//   styleUrl: './login.component.scss',
-// })
-// export class LoginComponent {
-
-// }
-
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';

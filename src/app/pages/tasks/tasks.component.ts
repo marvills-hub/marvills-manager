@@ -15,6 +15,7 @@ import { TaskStatusService } from '../../core/services/task-status.service';
 import { ToastService } from '../../core/services/toast.service';
 import { TopbarService } from '../../core/services/top-bar.service';
 import { WorkspaceMemberService } from '../../core/services/workspace-member.service';
+import { WorkspacePermissionService } from '../../core/services/workspace-permission.service';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { ConfirmationDialogComponent } from '../../shared/confirmation-dialog/confirmation-dialog.component';
 import { StatusManagerComponent } from './components/status-manager/status-manager.component';
@@ -61,6 +62,7 @@ export class TasksComponent implements OnInit, OnDestroy {
   private statusSubscription?: Subscription;
   private loadedStatusWorkspaceId = '';
   private migratedStatusWorkspaceId = '';
+  readonly permissions = inject(WorkspacePermissionService);
   readonly maxAttachments = this.attachmentService.maxFiles;
   readonly maxFileSize = this.attachmentService.maxFileSize;
   tasks: ProjectTask[] = [];
@@ -98,7 +100,6 @@ export class TasksComponent implements OnInit, OnDestroy {
   constructor() {
     this.topbarService.setPageContext({
       title: 'Tasks',
-      description: 'Organize and track work across your workspace',
       icon: 'fa-regular fa-square-check',
     });
   }
@@ -223,6 +224,7 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   async openStatusManager(): Promise<void> {
+    if (!this.permissions.canManageTaskStatuses()) return;
     const workspace = this.workspaceService.currentWorkspace();
     if (!workspace?.id) {
       this.toast.error('No workspace selected.');
@@ -256,7 +258,7 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   async changeTaskOrder(change: TaskOrderChange): Promise<void> {
-    if (this.updatingOrder) return;
+    if (!this.permissions.canEditTasks() || this.updatingOrder) return;
     const previousTasks = this.tasks.map((task) => ({ ...task }));
     const affectedStatuses = new Set<TaskStatus>([change.previousStatus, change.status]);
     this.tasks = this.applyOrderChange(change);
@@ -275,6 +277,7 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   openCreateTask(): void {
+    if (!this.permissions.canCreateTasks()) return;
     if (!this.statuses.length) {
       this.toast.error('Create a task status before adding tasks.');
       return;
@@ -291,6 +294,7 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   editTask(task: ProjectTask): void {
+    if (!this.permissions.canEditTasks()) return;
     this.editingTask = { ...task, attachments: [...(task.attachments ?? [])] };
     this.selectedFiles = [];
     this.pendingAttachmentDeletions = [];
@@ -314,6 +318,7 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   saveTask(): void {
+    if (!this.canModifyCurrentTask()) return;
     if (this.taskForm.invalid || this.saving) {
       this.taskForm.markAllAsTouched();
       return;
@@ -330,13 +335,14 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   confirmSaveAttachmentChanges(): void {
+    if (!this.canModifyCurrentTask()) return;
     this.resetConfirmation();
     void this.performSave();
   }
 
   selectFiles(event: Event): void {
     const input = event.target as HTMLInputElement;
-    if (!input.files?.length) return;
+    if (!this.canModifyCurrentTask() || !input.files?.length) return;
     this.addFiles(Array.from(input.files));
     input.value = '';
   }
@@ -344,14 +350,14 @@ export class TasksComponent implements OnInit, OnDestroy {
   onDragEnter(event: DragEvent): void {
     event.preventDefault();
     event.stopPropagation();
-    if (this.saving || this.remainingAttachmentSlots <= 0) return;
+    if (!this.canModifyCurrentTask() || this.saving || this.remainingAttachmentSlots <= 0) return;
     this.isDraggingFiles = true;
   }
 
   onDragOver(event: DragEvent): void {
     event.preventDefault();
     event.stopPropagation();
-    if (this.saving || this.remainingAttachmentSlots <= 0) {
+    if (!this.canModifyCurrentTask() || this.saving || this.remainingAttachmentSlots <= 0) {
       if (event.dataTransfer) event.dataTransfer.dropEffect = 'none';
       return;
     }
@@ -372,23 +378,30 @@ export class TasksComponent implements OnInit, OnDestroy {
     event.preventDefault();
     event.stopPropagation();
     this.isDraggingFiles = false;
-    if (this.saving || this.remainingAttachmentSlots <= 0 || !event.dataTransfer?.files.length)
+    if (
+      !this.canModifyCurrentTask() ||
+      this.saving ||
+      this.remainingAttachmentSlots <= 0 ||
+      !event.dataTransfer?.files.length
+    )
       return;
     this.addFiles(Array.from(event.dataTransfer.files));
     event.dataTransfer.clearData();
   }
 
   removeSelectedFile(index: number): void {
-    if (!this.saving) this.selectedFiles.splice(index, 1);
+    if (!this.canModifyCurrentTask() || this.saving) return;
+    this.selectedFiles.splice(index, 1);
   }
 
   requestRemoveExistingAttachment(attachment: Attachment): void {
-    if (this.saving) return;
+    if (!this.permissions.canEditTasks() || this.saving) return;
     this.attachmentPendingRemoval = attachment;
     this.confirmationAction = 'remove-attachment';
   }
 
   confirmRemoveExistingAttachment(): void {
+    if (!this.permissions.canEditTasks()) return;
     const attachment = this.attachmentPendingRemoval;
     if (!attachment || !this.editingTask) {
       this.resetConfirmation();
@@ -404,12 +417,13 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   requestDeleteTask(task: ProjectTask): void {
-    if (!task.id || this.deletingTask) return;
+    if (!this.permissions.canDeleteTasks() || !task.id || this.deletingTask) return;
     this.taskPendingDeletion = task;
     this.confirmationAction = 'delete-task';
   }
 
   async confirmDeleteTask(): Promise<void> {
+    if (!this.permissions.canDeleteTasks()) return;
     const task = this.taskPendingDeletion;
     if (!task?.id || this.deletingTask) return;
     this.deletingTask = true;
@@ -516,7 +530,13 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   async updateTaskStatus({ task, status }: TaskStatusUpdate): Promise<void> {
-    if (!task.id || task.status === status || this.updatingTaskId) return;
+    if (
+      !this.permissions.canEditTasks() ||
+      !task.id ||
+      task.status === status ||
+      this.updatingTaskId
+    )
+      return;
     const statusDefinition = this.statuses.find((item) => item.id === status);
     if (!statusDefinition) {
       this.toast.error('Unable to find that task status.');
@@ -545,7 +565,13 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   async updateTaskPriority({ task, priority }: TaskPriorityUpdate): Promise<void> {
-    if (!task.id || task.priority === priority || this.updatingTaskId) return;
+    if (
+      !this.permissions.canEditTasks() ||
+      !task.id ||
+      task.priority === priority ||
+      this.updatingTaskId
+    )
+      return;
     const previousTasks = this.tasks.map((item) => ({ ...item }));
     this.tasks = this.tasks.map((item) => (item.id === task.id ? { ...item, priority } : item));
     this.updatingTaskId = task.id;
@@ -568,7 +594,7 @@ export class TasksComponent implements OnInit, OnDestroy {
     task: ProjectTask;
     assigneeIds: string[];
   }): Promise<void> {
-    if (!task.id || this.updatingTaskId) return;
+    if (!this.permissions.canEditTasks() || !task.id || this.updatingTaskId) return;
     const previousTasks = this.tasks.map((item) => ({ ...item }));
     this.tasks = this.tasks.map((item) =>
       item.id === task.id ? { ...item, assigneeIds, assigneeId: '', assignee: '' } : item,
@@ -594,14 +620,15 @@ export class TasksComponent implements OnInit, OnDestroy {
     if (!workspaceId || this.loadingStatuses) return;
     this.loadingStatuses = true;
     try {
-      await this.taskStatusService.ensureDefaultStatuses(workspaceId, initialized);
+      if (this.permissions.canManageTaskStatuses())
+        await this.taskStatusService.ensureDefaultStatuses(workspaceId, initialized);
       this.statusSubscription?.unsubscribe();
       this.statusSubscription = this.taskStatusService.getStatuses(workspaceId).subscribe({
         next: (statuses) => {
           this.statuses = statuses;
           this.loadedStatusWorkspaceId = workspaceId;
           this.loadingStatuses = false;
-          if (this.migratedStatusWorkspaceId !== workspaceId) {
+          if (this.permissions.canEditTasks() && this.migratedStatusWorkspaceId !== workspaceId) {
             this.migratedStatusWorkspaceId = workspaceId;
             void this.migrateLegacyTaskStatuses(workspaceId, statuses);
           }
@@ -625,7 +652,12 @@ export class TasksComponent implements OnInit, OnDestroy {
     workspaceId: string,
     statuses: TaskStatusDefinition[],
   ): Promise<void> {
-    if (!statuses.length || workspaceId !== this.currentWorkspaceId) return;
+    if (
+      !this.permissions.canEditTasks() ||
+      !statuses.length ||
+      workspaceId !== this.currentWorkspaceId
+    )
+      return;
     try {
       const migrated = await this.taskService.migrateLegacyStatuses(statuses);
       if (migrated > 0)
@@ -647,7 +679,7 @@ export class TasksComponent implements OnInit, OnDestroy {
         item.displayName?.trim().toLowerCase() === legacyName ||
         item.email.trim().toLowerCase() === legacyName,
     );
-    return member ? [member.userId] : [];
+    return member?.userId ? [member.userId] : [];
   }
 
   private applyOrderChange(change: TaskOrderChange): ProjectTask[] {
@@ -763,7 +795,7 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   private addFiles(incomingFiles: File[]): void {
-    if (this.saving || !incomingFiles.length) return;
+    if (!this.canModifyCurrentTask() || this.saving || !incomingFiles.length) return;
     const availableSlots =
       this.maxAttachments - this.existingAttachmentCount - this.selectedFiles.length;
     if (availableSlots <= 0) {
@@ -809,6 +841,7 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   private async performSave(): Promise<void> {
+    if (!this.canModifyCurrentTask()) return;
     const workspace = this.workspaceService.currentWorkspace();
     if (!workspace?.id) {
       this.toast.error('No workspace selected.');
@@ -881,6 +914,10 @@ export class TasksComponent implements OnInit, OnDestroy {
     } finally {
       this.saving = false;
     }
+  }
+
+  private canModifyCurrentTask(): boolean {
+    return this.editingTask ? this.permissions.canEditTasks() : this.permissions.canCreateTasks();
   }
 
   private getNextOrder(status: TaskStatus): number {

@@ -1,4 +1,4 @@
-import { WorkspaceRole } from './workspace-member.model';
+import { WorkspaceRole, WorkspaceUserType } from './workspace-member.model';
 
 export type InvitationStatus = 'pending' | 'accepted' | 'declined';
 
@@ -8,6 +8,7 @@ export interface WorkspaceInvitation {
   workspaceName: string;
   email: string;
   role: Exclude<WorkspaceRole, 'owner'>;
+  type: WorkspaceUserType;
   status: InvitationStatus;
   invitedBy: string;
   invitedByEmail?: string;

@@ -1,85 +1,94 @@
 <section class="invitations-page">
-  <div class="page-header">
-    <div>
-      <span class="eyebrow"> COLLABORATION </span>
-
-      <h1>Invitations</h1>
-
-      <p>Workspaces that have invited you to collaborate.</p>
+  <div class="invitations-toolbar">
+    <div class="toolbar-info">
+      <span>{{ invitations().length }}</span>
+      <small>Pending {{ invitations().length === 1 ? 'invitation' : 'invitations' }}</small>
     </div>
   </div>
 
-  <div class="invitation-panel">
-    <div class="panel-header">
-      <strong> Pending Invitations </strong>
-
-      <span>
-        {{ invitations.length }}
-      </span>
+  @if (loading()) {
+    <div class="state-view">
+      <i class="fa-solid fa-spinner fa-spin"></i>
+      <span>Loading invitations...</span>
     </div>
+  } @else if (invitations().length) {
+    <div class="invitation-list">
+      @for (invitation of invitations(); track invitation.id) {
+        <article class="invitation-card">
+          <div class="workspace-avatar">
+            {{ getInitials(invitation.workspaceName) }}
+          </div>
 
-    @if (invitations.length) {
-      <div class="invitation-list">
-        @for (invitation of invitations; track invitation.id) {
-          <div class="invitation-row">
-            <div class="workspace-icon">
-              <i class="fa-solid fa-people-group"></i>
+          <div class="invitation-content">
+            <div class="invitation-main">
+              <strong>{{ invitation.workspaceName }}</strong>
+              <span> You have been invited to join this workspace. </span>
             </div>
 
-            <div class="invitation-info">
-              <strong>
-                {{ invitation.workspaceName }}
-              </strong>
+            <div class="invitation-meta">
+              <span class="type-badge" [attr.data-type]="invitation.type || 'worker'">
+                <i
+                  [class]="
+                    invitation.type === 'contractor'
+                      ? 'fa-solid fa-screwdriver-wrench'
+                      : invitation.type === 'guest'
+                        ? 'fa-regular fa-eye'
+                        : invitation.type === 'client'
+                          ? 'fa-solid fa-briefcase'
+                          : 'fa-solid fa-user-gear'
+                  "
+                ></i>
+                {{ getTypeLabel(invitation) }}
+              </span>
 
-              <span>
-                Invited as
-                {{ invitation.role }}
+              <span class="role-badge" [attr.data-role]="invitation.role">
+                {{ getRoleLabel(invitation) }}
               </span>
 
               @if (invitation.invitedByEmail) {
-                <small>
-                  Invited by
+                <span class="invited-by">
+                  <i class="fa-regular fa-paper-plane"></i>
                   {{ invitation.invitedByEmail }}
-                </small>
+                </span>
               }
             </div>
-
-            <div class="invitation-actions">
-              <button
-                type="button"
-                class="decline-button"
-                [disabled]="processingId === invitation.id"
-                (click)="decline(invitation)"
-              >
-                Decline
-              </button>
-
-              <button
-                type="button"
-                class="accept-button"
-                [disabled]="processingId === invitation.id"
-                (click)="accept(invitation)"
-              >
-                @if (processingId === invitation.id) {
-                  <i class="fa-solid fa-spinner fa-spin"></i>
-                } @else {
-                  <i class="fa-solid fa-check"></i>
-                }
-
-                Accept
-              </button>
-            </div>
           </div>
-        }
-      </div>
-    } @else {
-      <div class="empty-state">
+
+          <div class="invitation-actions">
+            <button
+              type="button"
+              class="decline-button"
+              [disabled]="isProcessing(invitation)"
+              (click)="decline(invitation)"
+            >
+              Decline
+            </button>
+
+            <button
+              type="button"
+              class="accept-button"
+              [disabled]="isProcessing(invitation)"
+              (click)="accept(invitation)"
+            >
+              @if (isProcessing(invitation)) {
+                <i class="fa-solid fa-spinner fa-spin"></i>
+                Processing
+              } @else {
+                <i class="fa-solid fa-check"></i>
+                Accept
+              }
+            </button>
+          </div>
+        </article>
+      }
+    </div>
+  } @else {
+    <div class="state-view">
+      <div class="empty-icon">
         <i class="fa-regular fa-envelope-open"></i>
-
-        <strong> No pending invitations </strong>
-
-        <span> New workspace invitations will appear here. </span>
       </div>
-    }
-  </div>
+      <strong>No pending invitations</strong>
+      <span>Workspace invitations sent to your account will appear here.</span>
+    </div>
+  }
 </section>

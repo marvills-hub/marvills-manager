@@ -1,0 +1,363 @@
+<section class="ideas-page">
+  <div class="ideas-toolbar">
+    <div class="view-switcher">
+      <button type="button" [class.active]="view === 'board'" (click)="setView('board')">
+        <i class="fa-solid fa-thumbtack"></i>
+        Board
+      </button>
+
+      <button type="button" [class.active]="view === 'backlog'" (click)="setView('backlog')">
+        <i class="fa-solid fa-list-check"></i>
+        Backlog
+      </button>
+    </div>
+
+    <div class="ideas-search">
+      <i class="fa-solid fa-magnifying-glass"></i>
+
+      <input
+        type="text"
+        [placeholder]="view === 'board' ? 'Search board...' : 'Search ideas...'"
+        [value]="searchTerm"
+        (input)="updateSearch($event)"
+      />
+
+      @if (searchTerm) {
+        <button type="button" (click)="clearSearch()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      }
+    </div>
+
+    @if (view === 'board') {
+      <div class="filter-group">
+        <button
+          type="button"
+          [class.active]="boardFilter === 'all'"
+          (click)="setBoardFilter('all')"
+        >
+          All
+          <span>{{ notes.length }}</span>
+        </button>
+
+        <button
+          type="button"
+          [class.active]="boardFilter === 'notes'"
+          (click)="setBoardFilter('notes')"
+        >
+          Notes
+          <span>{{ noteCount }}</span>
+        </button>
+
+        <button
+          type="button"
+          [class.active]="boardFilter === 'ideas'"
+          (click)="setBoardFilter('ideas')"
+        >
+          Ideas
+          <span>{{ boardIdeaCount }}</span>
+        </button>
+      </div>
+
+      @if (permissions.canManageContent()) {
+        <button class="primary-button toolbar-action" type="button" (click)="openCreateNote()">
+          <i class="fa-solid fa-plus"></i>
+          New Note
+        </button>
+      }
+    } @else {
+      <div class="status-filter">
+        <select [value]="ideaFilter" (change)="setIdeaFilter($any($event.target).value)">
+          <option value="all">All Statuses</option>
+          <option value="idea">Idea</option>
+          <option value="evaluating">Evaluating</option>
+          <option value="planned">Planned</option>
+          <option value="converted">Converted</option>
+          <option value="archived">Archived</option>
+        </select>
+      </div>
+
+      @if (permissions.canManageContent()) {
+        <button class="primary-button toolbar-action" type="button" (click)="openCreateIdea()">
+          <i class="fa-solid fa-plus"></i>
+          New Idea
+        </button>
+      }
+    }
+  </div>
+
+  @if (view === 'board') {
+    <app-note-board
+      [notes]="filteredNotes"
+      [totalNotes]="notes.length"
+      [canManage]="permissions.canManageContent()"
+      (createNote)="openCreateNote()"
+      (createNoteAt)="openCreateNoteAtPosition($event)"
+      (editNote)="openEditNote($event)"
+      (deleteNote)="openDeleteNote($event)"
+      (convertNote)="convertNoteToIdea($event)"
+      (viewNote)="openNoteView($event)"
+      (bringToFront)="bringNoteToFront($event)"
+      (positionChange)="updateNotePosition($event)"
+    />
+  } @else {
+    <app-idea-backlog
+      [ideas]="filteredIdeas"
+      [totalIdeas]="ideas.length"
+      [canManage]="permissions.canManageContent()"
+      (createIdea)="openCreateIdea()"
+      (editIdea)="openEditIdea($event)"
+      (deleteIdea)="openDeleteIdea($event)"
+      (pinIdea)="pinIdeaToBoard($event)"
+      (convertIdea)="convertIdeaToProject($event)"
+      (openProject)="openConvertedProject($event)"
+      (statusChange)="changeIdeaStatusValue($event)"
+      (priorityChange)="changeIdeaPriorityValue($event)"
+    />
+  }
+
+  <app-note-editor
+    [open]="noteDialogOpen"
+    [note]="editingNote"
+    [saving]="savingNote"
+    [canManage]="permissions.canManageContent()"
+    (closed)="closeNoteDialog()"
+    (submitted)="saveNote($event)"
+  />
+
+  <app-note-view
+    [open]="!!viewingNote"
+    [note]="viewingNote"
+    [canManage]="permissions.canManageContent()"
+    (closed)="closeNoteView()"
+    (editNote)="openEditNote($event)"
+    (deleteNote)="openDeleteNoteFromView($event)"
+    (convertNote)="convertNoteFromView($event)"
+  />
+
+  @if (ideaDialogOpen) {
+    <div class="modal-backdrop" (click)="closeIdeaDialog()">
+      <div class="idea-dialog" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div>
+            <span>{{ editingIdea ? 'EDIT IDEA' : 'NEW IDEA' }}</span>
+            <h2>{{ editingIdea ? 'Update Idea' : 'Capture an Idea' }}</h2>
+          </div>
+
+          <button type="button" [disabled]="savingIdea" (click)="closeIdeaDialog()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <form [formGroup]="ideaForm" (ngSubmit)="saveIdea()">
+          <div class="form-group">
+            <label>Idea Title</label>
+            <input type="text" formControlName="title" placeholder="e.g. Café loyalty system" />
+          </div>
+
+          <div class="form-group">
+            <label>Description</label>
+            <textarea
+              rows="4"
+              formControlName="description"
+              placeholder="Describe the idea..."
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Notes</label>
+            <textarea
+              rows="3"
+              formControlName="notes"
+              placeholder="Research, decisions, requirements or additional thoughts..."
+            ></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Status</label>
+              <select formControlName="status">
+                <option value="idea">Idea</option>
+                <option value="evaluating">Evaluating</option>
+                <option value="planned">Planned</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Priority</label>
+              <select formControlName="priority">
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Category</label>
+              <input type="text" formControlName="category" placeholder="Product, Feature..." />
+            </div>
+
+            <div class="form-group">
+              <label>Target Date</label>
+              <input type="date" formControlName="targetDate" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Tags</label>
+            <input type="text" formControlName="tags" placeholder="web, cafe, automation" />
+          </div>
+
+          @if (editingIdea?.convertedProjectId) {
+            <div class="converted-project-info">
+              <div>
+                <i class="fa-solid fa-circle-check"></i>
+
+                <span>
+                  <strong>Converted to Project</strong>
+                  <small>This idea already has an associated project.</small>
+                </span>
+              </div>
+
+              <button
+                type="button"
+                class="secondary-button"
+                (click)="openConvertedProject(editingIdea!)"
+              >
+                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                Open Project
+              </button>
+            </div>
+          }
+
+          <div class="form-actions">
+            <button
+              class="secondary-button"
+              type="button"
+              [disabled]="savingIdea"
+              (click)="closeIdeaDialog()"
+            >
+              Cancel
+            </button>
+
+            <button class="primary-button" type="submit" [disabled]="savingIdea">
+              @if (savingIdea) {
+                <i class="fa-solid fa-spinner fa-spin"></i>
+                Saving...
+              } @else {
+                <i class="fa-regular fa-lightbulb"></i>
+                {{ editingIdea ? 'Save Changes' : 'Create Idea' }}
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  @if (deletingNote; as note) {
+    <div class="modal-backdrop" (click)="closeDeleteNote()">
+      <div class="confirm-dialog" (click)="$event.stopPropagation()">
+        <div class="confirm-icon">
+          <i class="fa-regular fa-trash-can"></i>
+        </div>
+
+        <h2>Delete this note?</h2>
+
+        @if (note.type === 'idea') {
+          <p>
+            <strong>{{ note.title }}</strong> will be removed from the board. The linked idea will
+            remain in the backlog and can be pinned again later.
+          </p>
+        } @else {
+          <p>
+            <strong>{{ note.title }}</strong> will be permanently removed from the board.
+          </p>
+        }
+
+        <div class="form-actions">
+          <button
+            class="secondary-button"
+            type="button"
+            [disabled]="deleting"
+            (click)="closeDeleteNote()"
+          >
+            Cancel
+          </button>
+
+          <button
+            class="danger-button"
+            type="button"
+            [disabled]="deleting"
+            (click)="confirmDeleteNote()"
+          >
+            @if (deleting) {
+              <i class="fa-solid fa-spinner fa-spin"></i>
+              Deleting...
+            } @else {
+              <i class="fa-regular fa-trash-can"></i>
+              Delete
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (deletingIdea; as idea) {
+    <div class="modal-backdrop" (click)="closeDeleteIdea()">
+      <div class="confirm-dialog" (click)="$event.stopPropagation()">
+        <div class="confirm-icon">
+          <i class="fa-regular fa-lightbulb"></i>
+        </div>
+
+        <h2>Delete this idea?</h2>
+
+        @if (idea.convertedProjectId) {
+          <p>
+            <strong>{{ idea.title }}</strong> will be removed from the backlog and its pinned board
+            note will also be removed. The project created from this idea will remain.
+          </p>
+        } @else if (idea.boardNoteId) {
+          <p>
+            <strong>{{ idea.title }}</strong> and its linked board note will be permanently removed.
+          </p>
+        } @else {
+          <p>
+            <strong>{{ idea.title }}</strong> will be permanently removed from the backlog.
+          </p>
+        }
+
+        <div class="form-actions">
+          <button
+            class="secondary-button"
+            type="button"
+            [disabled]="deleting"
+            (click)="closeDeleteIdea()"
+          >
+            Cancel
+          </button>
+
+          <button
+            class="danger-button"
+            type="button"
+            [disabled]="deleting"
+            (click)="confirmDeleteIdea()"
+          >
+            @if (deleting) {
+              <i class="fa-solid fa-spinner fa-spin"></i>
+              Deleting...
+            } @else {
+              <i class="fa-regular fa-trash-can"></i>
+              Delete
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</section>

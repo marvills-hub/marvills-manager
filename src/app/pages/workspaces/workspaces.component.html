@@ -1,21 +1,66 @@
 <section class="workspaces-page">
-  <div class="page-header">
-    <div>
-      <span class="eyebrow"> WORKSPACE MANAGEMENT </span>
-
-      <h1>Workspaces</h1>
-
-      <p>Organize your projects and teams into separate workspaces.</p>
+  <div class="workspace-toolbar">
+    <div class="workspace-search">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input
+        type="text"
+        placeholder="Search workspaces..."
+        [value]="searchTerm"
+        (input)="updateSearch($event)"
+      />
+      @if (searchTerm) {
+        <button type="button" title="Clear search" (click)="searchTerm = ''">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      }
     </div>
 
-    <button class="primary-button" type="button" (click)="openCreateForm()">
+    <div class="workspace-filters">
+      <button
+        type="button"
+        [class.active]="workspaceFilter === 'all'"
+        (click)="setWorkspaceFilter('all')"
+      >
+        All
+        <span>{{ workspaces.length }}</span>
+      </button>
+
+      <button
+        type="button"
+        [class.active]="workspaceFilter === 'owned'"
+        (click)="setWorkspaceFilter('owned')"
+      >
+        Owned
+        <span>{{ ownedWorkspaceCount }}</span>
+      </button>
+
+      <button
+        type="button"
+        [class.active]="workspaceFilter === 'member'"
+        (click)="setWorkspaceFilter('member')"
+      >
+        Member
+        <span>{{ memberWorkspaceCount }}</span>
+      </button>
+    </div>
+
+    <div class="workspace-sort">
+      <i class="fa-solid fa-arrow-down-wide-short"></i>
+      <select [value]="workspaceSort" (change)="updateSort($event)">
+        <option value="name">Name</option>
+        <option value="newest">Newest</option>
+        <option value="oldest">Oldest</option>
+      </select>
+    </div>
+
+    <button class="primary-button new-workspace-button" type="button" (click)="openCreateForm()">
       <i class="fa-solid fa-plus"></i>
       New Workspace
     </button>
   </div>
 
   <div class="workspace-grid">
-    @for (workspace of workspaces; track workspace.id) {
+    @for (workspace of filteredWorkspaces; track workspace.id) {
       <article
         class="workspace-card"
         [class.selected]="workspaceService.currentWorkspace()?.id === workspace.id"
@@ -26,27 +71,41 @@
             {{ workspace.name.charAt(0).toUpperCase() }}
           </div>
 
-          @if (workspaceService.currentWorkspace()?.id === workspace.id) {
-            <span class="current-badge"> Current </span>
-          }
+          <div class="workspace-top-actions">
+            @if (workspaceService.currentWorkspace()?.id === workspace.id) {
+              <span class="current-badge">Current</span>
+            }
+
+            @if (isWorkspaceOwner(workspace)) {
+              <button
+                type="button"
+                class="icon-button"
+                title="Edit workspace"
+                (click)="$event.stopPropagation(); openEditForm(workspace)"
+              >
+                <i class="fa-solid fa-pen"></i>
+              </button>
+            }
+          </div>
         </div>
 
-        <h2>
-          {{ workspace.name }}
-        </h2>
-
-        <p>
-          {{ workspace.description || 'No description' }}
-        </p>
+        <h2>{{ workspace.name }}</h2>
+        <p>{{ workspace.description || 'No description' }}</p>
 
         <div class="workspace-footer">
           <span>
-            <i class="fa-solid fa-crown"></i>
-            Owner
+            <i
+              [class]="isWorkspaceOwner(workspace) ? 'fa-solid fa-crown' : 'fa-solid fa-user-group'"
+            ></i>
+            {{ getWorkspaceAccessLabel(workspace) }}
           </span>
 
           <button type="button" class="open-button">
-            Open
+            @if (workspaceService.currentWorkspace()?.id === workspace.id) {
+              Current
+            } @else {
+              Open
+            }
             <i class="fa-solid fa-arrow-right"></i>
           </button>
         </div>
@@ -58,13 +117,21 @@
         <div class="empty-icon">
           <i class="fa-solid fa-layer-group"></i>
         </div>
-
         <h2>Create your first workspace</h2>
-
-        <p>Workspaces keep projects, tasks, clients and members organized separately.</p>
-
+        <p>Workspaces keep projects, tasks, users and resources organized separately.</p>
         <button class="primary-button" type="button" (click)="openCreateForm()">
           Create Workspace
+        </button>
+      </div>
+    } @else if (filteredWorkspaces.length === 0) {
+      <div class="empty-state compact">
+        <div class="empty-icon">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </div>
+        <h2>No workspaces found</h2>
+        <p>Try changing your search or workspace access filter.</p>
+        <button class="secondary-button" type="button" (click)="clearFilters()">
+          Clear Filters
         </button>
       </div>
     }
@@ -75,30 +142,36 @@
       <div class="modal" (click)="$event.stopPropagation()">
         <div class="modal-header">
           <div>
-            <span class="eyebrow"> NEW WORKSPACE </span>
-
-            <h2>Create Workspace</h2>
+            <span class="eyebrow">
+              {{ editingWorkspace ? 'WORKSPACE SETTINGS' : 'NEW WORKSPACE' }}
+            </span>
+            <h2>{{ editingWorkspace ? 'Edit Workspace' : 'Create Workspace' }}</h2>
           </div>
 
-          <button type="button" class="close-button" (click)="closeForm()">
+          <button type="button" class="close-button" [disabled]="saving" (click)="closeForm()">
             <i class="fa-solid fa-xmark"></i>
           </button>
         </div>
 
-        <form [formGroup]="workspaceForm" (ngSubmit)="createWorkspace()">
+        <form [formGroup]="workspaceForm" (ngSubmit)="saveWorkspace()">
           <div class="form-group">
-            <label> Workspace Name </label>
-
-            <input type="text" formControlName="name" placeholder="e.g. Marvills" />
+            <label>Workspace Name</label>
+            <input
+              type="text"
+              formControlName="name"
+              placeholder="e.g. Marvills"
+              [class.invalid]="
+                workspaceForm.controls.name.touched && workspaceForm.controls.name.invalid
+              "
+            />
 
             @if (workspaceForm.controls.name.touched && workspaceForm.controls.name.invalid) {
-              <small class="error"> Workspace name is required. </small>
+              <small class="error">Workspace name is required.</small>
             }
           </div>
 
           <div class="form-group">
-            <label> Description </label>
-
+            <label>Description</label>
             <textarea
               rows="4"
               formControlName="description"
@@ -106,19 +179,95 @@
             ></textarea>
           </div>
 
+          @if (editingWorkspace && isWorkspaceOwner(editingWorkspace)) {
+            <div class="form-group danger-zone">
+              <label>Danger Zone</label>
+              <button
+                type="button"
+                class="secondary-button danger-button"
+                [disabled]="saving"
+                (click)="openDeleteWorkspace(editingWorkspace); closeForm()"
+              >
+                <i class="fa-regular fa-trash-can"></i>
+                Delete Workspace
+              </button>
+            </div>
+          }
+
           <div class="form-actions">
-            <button type="button" class="secondary-button" (click)="closeForm()">Cancel</button>
+            <button
+              type="button"
+              class="secondary-button"
+              [disabled]="saving"
+              (click)="closeForm()"
+            >
+              Cancel
+            </button>
 
             <button type="submit" class="primary-button" [disabled]="saving">
               @if (saving) {
                 <i class="fa-solid fa-spinner fa-spin"></i>
-                Creating...
+                Saving...
               } @else {
-                Create Workspace
+                <i [class]="editingWorkspace ? 'fa-solid fa-check' : 'fa-solid fa-plus'"></i>
+                {{ editingWorkspace ? 'Save Changes' : 'Create Workspace' }}
               }
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  }
+
+  @if (deletingWorkspace; as workspace) {
+    <div class="modal-backdrop" (click)="closeDeleteWorkspace()">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div>
+            <span class="eyebrow">DELETE WORKSPACE</span>
+            <h2>Delete {{ workspace.name }}?</h2>
+          </div>
+
+          <button
+            type="button"
+            class="close-button"
+            [disabled]="deleting"
+            (click)="closeDeleteWorkspace()"
+          >
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <p class="delete-description">
+          This permanently removes the workspace and its workspace data from Marvills Manager. Only
+          the workspace owner can perform this action.
+        </p>
+
+        <div class="form-actions">
+          <button
+            type="button"
+            class="secondary-button"
+            [disabled]="deleting"
+            (click)="closeDeleteWorkspace()"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            class="primary-button delete-button"
+            [disabled]="deleting"
+            (click)="confirmDeleteWorkspace()"
+          >
+            @if (deleting) {
+              <i class="fa-solid fa-spinner fa-spin"></i>
+              Deleting...
+            } @else {
+              <i class="fa-regular fa-trash-can"></i>
+              Delete Workspace
+            }
+          </button>
+        </div>
       </div>
     </div>
   }

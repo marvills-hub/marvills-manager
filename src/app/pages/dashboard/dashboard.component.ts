@@ -32,13 +32,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.topbarService.setPageContext({
       title: 'Dashboard',
-      description: 'Keep track of your projects, tasks, and deadlines.',
       icon: 'fa-solid fa-chart-line',
-      action: {
-        label: 'New Project',
-        icon: 'fa-solid fa-plus',
-        route: '/projects',
-      },
     });
     combineLatest([this.projectService.getProjects(), this.taskService.getTasks()]).subscribe(
       ([projects, tasks]) => {

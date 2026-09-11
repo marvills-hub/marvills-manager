@@ -1,0 +1,261 @@
+<section class="auth-page">
+  <div class="auth-glow glow-one"></div>
+  <div class="auth-glow glow-two"></div>
+  <div class="auth-card">
+    <div class="brand">
+      <div class="brand-logo">
+        <img src="assets/icons/marvills-manager-logo-v2.png" alt="Marvills Manager" />
+      </div>
+      <div>
+        <strong>MARVILLS</strong>
+        <span>MANAGER</span>
+      </div>
+    </div>
+
+    @if (mode !== 'forgot') {
+      <div class="auth-tabs">
+        <button type="button" [class.active]="mode === 'login'" (click)="setMode('login')">
+          Sign In
+        </button>
+        <button type="button" [class.active]="mode === 'register'" (click)="setMode('register')">
+          Create Account
+        </button>
+      </div>
+    }
+
+    @if (mode === 'login') {
+      <div class="auth-heading">
+        <span class="eyebrow">PRIVATE WORKSPACE</span>
+        <h1>Welcome Back</h1>
+        <p>Sign in to manage your projects, users, tasks and workspaces.</p>
+      </div>
+
+      <form [formGroup]="loginForm" (ngSubmit)="login()">
+        <div class="form-group">
+          <label>Email</label>
+          <div class="input-wrapper">
+            <i class="fa-regular fa-envelope"></i>
+            <input type="email" formControlName="email" placeholder="you@email.com" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="label-row">
+            <label>Password</label>
+            <button type="button" class="text-button" (click)="setMode('forgot')">
+              Forgot Password?
+            </button>
+          </div>
+          <div class="input-wrapper">
+            <i class="fa-solid fa-lock"></i>
+            <input
+              [type]="loginPasswordVisible ? 'text' : 'password'"
+              formControlName="password"
+              placeholder="Your password"
+            />
+            <button type="button" class="input-action" (click)="toggleLoginPassword()">
+              <i
+                [class]="loginPasswordVisible ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye'"
+              ></i>
+            </button>
+          </div>
+        </div>
+
+        @if (errorMessage) {
+          <div class="message error-message">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            {{ errorMessage }}
+          </div>
+        }
+
+        <button class="primary-button" type="submit" [disabled]="loading">
+          @if (loading) {
+            <i class="fa-solid fa-spinner fa-spin"></i>
+            Signing In...
+          } @else {
+            Sign In
+            <i class="fa-solid fa-arrow-right"></i>
+          }
+        </button>
+      </form>
+    }
+
+    @if (mode === 'register') {
+      <div class="auth-heading">
+        <span class="eyebrow">CREATE ACCOUNT</span>
+        <h1>Join Marvills Manager</h1>
+        <p>Create your account to manage workspaces or accept an invitation.</p>
+      </div>
+
+      <form [formGroup]="registerForm" (ngSubmit)="register()">
+        <div class="form-group">
+          <label>Full Name</label>
+          <div class="input-wrapper">
+            <i class="fa-regular fa-user"></i>
+            <input type="text" formControlName="displayName" placeholder="Your name" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Email</label>
+          <div class="input-wrapper">
+            <i class="fa-regular fa-envelope"></i>
+            <input type="email" formControlName="email" placeholder="you@email.com" />
+          </div>
+        </div>
+
+        <div class="form-group password-group">
+          <div class="label-row">
+            <label>Password</label>
+            <button type="button" class="generate-button" (click)="generatePassword()">
+              <i class="fa-solid fa-wand-magic-sparkles"></i>
+              Suggest Strong Password
+            </button>
+          </div>
+
+          <div class="input-wrapper">
+            <i class="fa-solid fa-lock"></i>
+            <input
+              [type]="registerPasswordVisible ? 'text' : 'password'"
+              formControlName="password"
+              placeholder="Create or generate a strong password"
+            />
+            @if (registerForm.controls.password.value) {
+              <button
+                type="button"
+                class="input-action"
+                (click)="copyPassword()"
+                title="Copy password"
+              >
+                <i [class]="passwordCopied ? 'fa-solid fa-check' : 'fa-regular fa-copy'"></i>
+              </button>
+            }
+            <button type="button" class="input-action" (click)="toggleRegisterPassword()">
+              <i
+                [class]="registerPasswordVisible ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye'"
+              ></i>
+            </button>
+          </div>
+
+          <div class="password-hint">
+            <i class="fa-solid fa-shield-halved"></i>
+            <span>Use at least 8 characters with uppercase, lowercase, numbers and symbols.</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Confirm Password</label>
+          <div
+            class="input-wrapper"
+            [class.disabled]="registerForm.controls.confirmPassword.disabled"
+          >
+            <i class="fa-solid fa-lock"></i>
+            <input
+              [type]="confirmPasswordVisible ? 'text' : 'password'"
+              formControlName="confirmPassword"
+              placeholder="Copy or type your password again"
+            />
+            <button
+              type="button"
+              class="input-action"
+              [disabled]="registerForm.controls.confirmPassword.disabled"
+              (click)="toggleConfirmPassword()"
+            >
+              <i
+                [class]="confirmPasswordVisible ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye'"
+              ></i>
+            </button>
+          </div>
+          @if (registerForm.controls.confirmPassword.disabled) {
+            <span class="field-note">Enter your password first to enable confirmation.</span>
+          }
+        </div>
+
+        @if (
+          registerForm.controls.confirmPassword.enabled &&
+          registerForm.controls.confirmPassword.value &&
+          registerForm.controls.password.value !== registerForm.controls.confirmPassword.value
+        ) {
+          <div class="message error-message">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            Passwords do not match.
+          </div>
+        }
+
+        @if (
+          registerForm.controls.confirmPassword.value &&
+          registerForm.controls.password.value === registerForm.controls.confirmPassword.value
+        ) {
+          <div class="message password-match">
+            <i class="fa-solid fa-circle-check"></i>
+            Passwords match.
+          </div>
+        }
+
+        @if (errorMessage) {
+          <div class="message error-message">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            {{ errorMessage }}
+          </div>
+        }
+
+        <button class="primary-button" type="submit" [disabled]="loading">
+          @if (loading) {
+            <i class="fa-solid fa-spinner fa-spin"></i>
+            Creating Account...
+          } @else {
+            Create Account
+            <i class="fa-solid fa-arrow-right"></i>
+          }
+        </button>
+      </form>
+    }
+
+    @if (mode === 'forgot') {
+      <button type="button" class="back-button" (click)="setMode('login')">
+        <i class="fa-solid fa-arrow-left"></i>
+        Back to Sign In
+      </button>
+
+      <div class="auth-heading forgot-heading">
+        <span class="eyebrow">ACCOUNT RECOVERY</span>
+        <h1>Forgot Password?</h1>
+        <p>Enter your email and we'll send you a password reset link.</p>
+      </div>
+
+      <form [formGroup]="forgotForm" (ngSubmit)="resetPassword()">
+        <div class="form-group">
+          <label>Email</label>
+          <div class="input-wrapper">
+            <i class="fa-regular fa-envelope"></i>
+            <input type="email" formControlName="email" placeholder="you@email.com" />
+          </div>
+        </div>
+
+        @if (errorMessage) {
+          <div class="message error-message">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            {{ errorMessage }}
+          </div>
+        }
+
+        @if (successMessage) {
+          <div class="message success-message">
+            <i class="fa-solid fa-circle-check"></i>
+            {{ successMessage }}
+          </div>
+        }
+
+        <button class="primary-button" type="submit" [disabled]="loading">
+          @if (loading) {
+            <i class="fa-solid fa-spinner fa-spin"></i>
+            Sending...
+          } @else {
+            Send Reset Link
+            <i class="fa-solid fa-paper-plane"></i>
+          }
+        </button>
+      </form>
+    }
+  </div>
+</section>

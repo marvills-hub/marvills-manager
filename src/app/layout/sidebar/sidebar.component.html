@@ -1,99 +1,133 @@
 <aside class="sidebar">
-  <div class="brand">
-    <img
-      src="assets/icons/marvills-manager-logo-v2.png"
-      alt="Marvills Manager Logo"
-      class="brand-icon"
-    />
-    <div class="brand-text">
-      <strong>MARVILLS</strong>
-      <span>MANAGER</span>
+  <div class="sidebar-header">
+    <div class="brand">
+      <img
+        src="assets/icons/marvills-manager-logo-v2.png"
+        alt="Marvills Manager Logo"
+        class="brand-icon"
+      />
+      <div class="brand-text">
+        <strong>MARVILLS</strong>
+        <span>MANAGER</span>
+      </div>
+    </div>
+
+    <div class="workspace-selector">
+      <button type="button" class="workspace-current" (click)="toggleWorkspaceMenu()">
+        <div class="workspace-avatar">
+          {{ workspaceService.currentWorkspace()?.name?.charAt(0)?.toUpperCase() || 'W' }}
+        </div>
+
+        <div class="workspace-name">
+          <small>CURRENT WORKSPACE</small>
+          <strong>{{ workspaceService.currentWorkspace()?.name || 'Select Workspace' }}</strong>
+        </div>
+
+        <i class="fa-solid fa-chevron-down" [class.rotated]="workspaceMenuOpen"></i>
+      </button>
+
+      @if (workspaceMenuOpen) {
+        <div class="workspace-menu">
+          @for (workspace of workspaces; track workspace.id) {
+            <button
+              type="button"
+              class="workspace-option"
+              [class.active]="workspaceService.currentWorkspace()?.id === workspace.id"
+              (click)="selectWorkspace(workspace)"
+            >
+              <span class="option-avatar">
+                {{ workspace.name.charAt(0).toUpperCase() }}
+              </span>
+
+              <span class="workspace-option-content">
+                <strong>{{ workspace.name }}</strong>
+                @if (workspaceService.currentWorkspace()?.id === workspace.id) {
+                  <small>Current workspace</small>
+                } @else {
+                  <small>Switch workspace</small>
+                }
+              </span>
+
+              @if (workspaceService.currentWorkspace()?.id === workspace.id) {
+                <i class="fa-solid fa-check"></i>
+              }
+            </button>
+          }
+
+          <div class="workspace-menu-divider"></div>
+
+          <a routerLink="/workspaces" class="manage-workspaces" (click)="workspaceMenuOpen = false">
+            <i class="fa-solid fa-layer-group"></i>
+            <span>Manage Workspaces</span>
+          </a>
+        </div>
+      }
     </div>
   </div>
-  <div class="workspace-selector">
-    <button type="button" class="workspace-current" (click)="toggleWorkspaceMenu()">
-      <div class="workspace-avatar">
-        {{ workspaceService.currentWorkspace()?.name?.charAt(0)?.toUpperCase() || 'W' }}
-      </div>
-      <div class="workspace-name">
-        <small>CURRENT WORKSPACE</small>
-        <strong>{{ workspaceService.currentWorkspace()?.name || 'Select Workspace' }}</strong>
-      </div>
-      <i class="fa-solid fa-chevron-down" [class.rotated]="workspaceMenuOpen"></i>
-    </button>
-    @if (workspaceMenuOpen) {
-      <div class="workspace-menu">
-        @for (workspace of workspaces; track workspace.id) {
-          <button
-            type="button"
-            class="workspace-option"
-            [class.active]="workspaceService.currentWorkspace()?.id === workspace.id"
-            (click)="selectWorkspace(workspace)"
-          >
-            <span class="option-avatar">{{ workspace.name.charAt(0).toUpperCase() }}</span>
-            <span>{{ workspace.name }}</span>
-            @if (workspaceService.currentWorkspace()?.id === workspace.id) {
-              <i class="fa-solid fa-check"></i>
-            }
-          </button>
-        }
-        <div class="workspace-menu-divider"></div>
-        <a routerLink="/workspaces" class="manage-workspaces" (click)="workspaceMenuOpen = false">
-          <i class="fa-solid fa-plus"></i>
-          Manage Workspaces
-        </a>
-      </div>
-    }
+
+  <div class="sidebar-content">
+    <div class="menu-label">WORKSPACE</div>
+
+    <nav class="nav-menu">
+      <a routerLink="/dashboard" routerLinkActive="active">
+        <i class="fa-solid fa-house"></i>
+        <span>Dashboard</span>
+      </a>
+
+      <a routerLink="/projects" routerLinkActive="active">
+        <i class="fa-regular fa-folder"></i>
+        <span>Projects</span>
+      </a>
+
+      <a routerLink="/tasks" routerLinkActive="active">
+        <i class="fa-regular fa-square-check"></i>
+        <span>Tasks</span>
+      </a>
+
+      <a routerLink="/ideas" routerLinkActive="active">
+        <i class="fa-regular fa-lightbulb"></i>
+        <span>Ideas</span>
+      </a>
+
+      <a routerLink="/diagrams" routerLinkActive="active" class="nav-item">
+        <i class="fa-solid fa-diagram-project"></i>
+        <span>Diagrams</span>
+      </a>
+
+      <a routerLink="/users" routerLinkActive="active">
+        <i class="fa-solid fa-users-gear"></i>
+        <span>Users</span>
+      </a>
+
+      <a routerLink="/workspaces" routerLinkActive="active">
+        <i class="fa-solid fa-layer-group"></i>
+        <span>Workspaces</span>
+      </a>
+    </nav>
+
+    <div class="menu-label">TOOLS</div>
+
+    <nav class="nav-menu coming-soon">
+      <a>
+        <i class="fa-regular fa-calendar"></i>
+        <span>Calendar</span>
+        <small>Soon</small>
+      </a>
+
+      <a>
+        <i class="fa-regular fa-clock"></i>
+        <span>Time Tracking</span>
+        <small>Soon</small>
+      </a>
+
+      <a>
+        <i class="fa-solid fa-chart-line"></i>
+        <span>Reports</span>
+        <small>Soon</small>
+      </a>
+    </nav>
   </div>
-  <div class="menu-label">WORKSPACE</div>
-  <nav class="nav-menu">
-    <a routerLink="/dashboard" routerLinkActive="active">
-      <i class="fa-solid fa-house"></i>
-      <span>Dashboard</span>
-    </a>
-    <a routerLink="/projects" routerLinkActive="active">
-      <i class="fa-regular fa-folder"></i>
-      <span>Projects</span>
-    </a>
-    <a routerLink="/tasks" routerLinkActive="active">
-      <i class="fa-regular fa-square-check"></i>
-      <span>Tasks</span>
-    </a>
-    <a routerLink="/clients" routerLinkActive="active">
-      <i class="fa-regular fa-user"></i>
-      <span>Clients</span>
-    </a>
-    <a routerLink="/members" routerLinkActive="active">
-      <i class="fa-solid fa-users"></i>
-      <span>Members</span>
-    </a>
-    <a routerLink="/invitations" routerLinkActive="active">
-      <i class="fa-solid fa-envelope"></i>
-      <span>Invitations</span>
-    </a>
-    <a routerLink="/workspaces" routerLinkActive="active">
-      <i class="fa-solid fa-layer-group"></i>
-      <span>Workspaces</span>
-    </a>
-  </nav>
-  <div class="menu-label">TOOLS</div>
-  <nav class="nav-menu coming-soon">
-    <a>
-      <i class="fa-regular fa-calendar"></i>
-      <span>Calendar</span>
-      <small>Soon</small>
-    </a>
-    <a>
-      <i class="fa-regular fa-clock"></i>
-      <span>Time Tracking</span>
-      <small>Soon</small>
-    </a>
-    <a>
-      <i class="fa-solid fa-chart-line"></i>
-      <span>Reports</span>
-      <small>Soon</small>
-    </a>
-  </nav>
+
   <div class="sidebar-footer">
     <a routerLink="/profile" routerLinkActive="active" class="sidebar-profile" title="Open profile">
       <div class="avatar">
@@ -103,13 +137,60 @@
           {{ initials }}
         }
       </div>
+
       <div class="sidebar-profile-info">
         <strong>{{ displayName }}</strong>
         <span>{{ workspaceRole }}</span>
       </div>
     </a>
-    <button class="logout-button" type="button" (click)="logout()" title="Logout">
-      <i class="fa-solid fa-arrow-right-from-bracket"></i>
-    </button>
+
+    <div class="logout-wrapper">
+      <button class="logout-button" type="button" (click)="openLogoutDialog()">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+      </button>
+      <span class="logout-tooltip">Logout</span>
+    </div>
   </div>
+
+  @if (logoutDialogOpen) {
+    <div class="logout-backdrop" (click)="closeLogoutDialog()">
+      <div class="logout-dialog" (click)="$event.stopPropagation()">
+        <div class="logout-dialog-icon">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </div>
+
+        <div class="logout-dialog-content">
+          <span class="logout-dialog-label">SIGN OUT</span>
+          <h3>Logout from Marvills Manager?</h3>
+          <p>You will need to sign in again to access your workspaces.</p>
+        </div>
+
+        <div class="logout-dialog-actions">
+          <button
+            type="button"
+            class="cancel-button"
+            [disabled]="loggingOut"
+            (click)="closeLogoutDialog()"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            class="confirm-logout-button"
+            [disabled]="loggingOut"
+            (click)="confirmLogout()"
+          >
+            @if (loggingOut) {
+              <i class="fa-solid fa-spinner fa-spin"></i>
+              Logging out...
+            } @else {
+              <i class="fa-solid fa-arrow-right-from-bracket"></i>
+              Logout
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
 </aside>

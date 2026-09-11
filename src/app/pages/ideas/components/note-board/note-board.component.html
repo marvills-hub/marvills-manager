@@ -1,0 +1,125 @@
+<div class="board-shell">
+  <div class="board-top">
+    <div>
+      <i class="fa-solid fa-thumbtack"></i>
+      <span>IDEA BOARD</span>
+    </div>
+
+    <small>
+      @if (canManage) {
+        Drag notes downward to expand the board
+      } @else {
+        Read-only board
+      }
+    </small>
+  </div>
+
+  <div class="board-scroll" #boardScroll>
+    <div class="corkboard" [style.height.px]="boardHeight" (dblclick)="openCreateNoteAt($event)">
+      <div class="board-texture"></div>
+
+      @for (note of notes; track note.id) {
+        <article
+          class="board-note"
+          [class]="note.design"
+          [class.idea-note]="note.type === 'idea'"
+          [style.z-index]="note.zIndex"
+          [style.width.px]="note.width"
+          [style.height.px]="note.height"
+          cdkDrag
+          cdkDragBoundary=".corkboard"
+          [cdkDragFreeDragPosition]="{ x: note.x, y: note.y }"
+          [cdkDragDisabled]="!canManage"
+          (click)="openNote(note)"
+          (cdkDragStarted)="noteDragStarted(note)"
+          (cdkDragMoved)="noteDragMoved(note, $event)"
+          (cdkDragEnded)="noteDragEnded(note, $event)"
+        >
+          <div class="note-decoration" [class]="note.pin">
+            @if (note.pin === 'red-pin' || note.pin === 'blue-pin') {
+              <span class="pushpin"></span>
+            } @else if (note.pin === 'tape') {
+              <span class="tape"></span>
+            } @else {
+              <i class="fa-solid fa-paperclip"></i>
+            }
+          </div>
+
+          <div class="note-header">
+            @if (note.type === 'idea') {
+              <span class="note-type">
+                <i class="fa-regular fa-lightbulb"></i>
+                IDEA
+              </span>
+            } @else {
+              <span class="note-type">NOTE</span>
+            }
+
+            @if (canManage) {
+              <div class="note-actions">
+                @if (note.type === 'note') {
+                  <button
+                    type="button"
+                    title="Convert to idea"
+                    (click)="$event.stopPropagation(); convertNote.emit(note)"
+                  >
+                    <i class="fa-regular fa-lightbulb"></i>
+                  </button>
+                }
+
+                <button
+                  type="button"
+                  title="Edit note"
+                  (click)="$event.stopPropagation(); editNote.emit(note)"
+                >
+                  <i class="fa-solid fa-pen"></i>
+                </button>
+
+                <button
+                  type="button"
+                  title="Delete note"
+                  (click)="$event.stopPropagation(); deleteNote.emit(note)"
+                >
+                  <i class="fa-regular fa-trash-can"></i>
+                </button>
+              </div>
+            }
+          </div>
+
+          <h3>{{ note.title }}</h3>
+
+          @if (note.content) {
+            <p>{{ note.content }}</p>
+          } @else {
+            <p class="empty-note">No additional text</p>
+          }
+        </article>
+      }
+
+      @if (totalNotes === 0) {
+        <div class="board-empty">
+          <div class="empty-pin">
+            <i class="fa-solid fa-thumbtack"></i>
+          </div>
+          <strong>Your board is empty</strong>
+          <span>Pin notes, thoughts and ideas anywhere on this board.</span>
+
+          @if (canManage) {
+            <button class="primary-button" type="button" (click)="openCreateNote()">
+              <i class="fa-solid fa-plus"></i>
+              Add First Note
+            </button>
+          }
+        </div>
+      } @else if (notes.length === 0) {
+        <div class="board-empty">
+          <div class="empty-pin">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </div>
+          <strong>No matching notes</strong>
+          <span>Try another search or board filter.</span>
+        </div>
+      }
+    </div>
+  </div>
+</div>

@@ -21,6 +21,7 @@
           {{ group.tasks.length === 1 ? 'task' : 'tasks' }}
         </span>
       </button>
+
       @if (!isCollapsed(group.status)) {
         <div class="group-table">
           <div class="table-header">
@@ -34,12 +35,14 @@
             <div class="files-column">Files</div>
             <div class="actions-column"></div>
           </div>
+
           <div
             class="task-list"
             cdkDropList
             [id]="getDropListId(group.status)"
             [cdkDropListData]="group.tasks"
             [cdkDropListConnectedTo]="connectedDropLists"
+            [cdkDropListDisabled]="readOnly"
             (cdkDropListDropped)="drop($event, group.status)"
           >
             @for (task of group.tasks; track task.id) {
@@ -47,15 +50,18 @@
                 class="task-row"
                 cdkDrag
                 [cdkDragData]="task"
-                [cdkDragDisabled]="updatingTaskId === task.id"
+                [cdkDragDisabled]="readOnly || updatingTaskId === task.id"
                 [class.updating]="updatingTaskId === task.id"
                 (dblclick)="editTask(task, $event)"
               >
                 <div class="drag-column">
-                  <button type="button" class="drag-handle" cdkDragHandle title="Drag task">
-                    <i class="fa-solid fa-grip-vertical"></i>
-                  </button>
+                  @if (!readOnly) {
+                    <button type="button" class="drag-handle" cdkDragHandle title="Drag task">
+                      <i class="fa-solid fa-grip-vertical"></i>
+                    </button>
+                  }
                 </div>
+
                 <div class="task-column task-info">
                   <span
                     class="task-status-line"
@@ -70,19 +76,21 @@
                     }
                   </div>
                 </div>
+
                 <div class="project-column">
                   <span class="project-value" [title]="getProjectName(task.projectId)">
                     <i class="fa-regular fa-folder"></i>
                     {{ getProjectName(task.projectId) }}
                   </span>
                 </div>
+
                 <div class="status-column">
                   <div class="inline-dropdown" (click)="$event.stopPropagation()">
                     <button
                       type="button"
                       class="status-button"
                       [style.--status-color]="getStatusColor(task.status)"
-                      [disabled]="updatingTaskId === task.id"
+                      [disabled]="readOnly || updatingTaskId === task.id"
                       (click)="toggleStatusMenu(task, $event)"
                     >
                       <span
@@ -92,11 +100,12 @@
                       <span>{{ getStatusLabel(task.status) }}</span>
                       @if (updatingTaskId === task.id) {
                         <i class="fa-solid fa-spinner fa-spin"></i>
-                      } @else {
+                      } @else if (!readOnly) {
                         <i class="fa-solid fa-chevron-down"></i>
                       }
                     </button>
-                    @if (openStatusTaskId === task.id) {
+
+                    @if (!readOnly && openStatusTaskId === task.id) {
                       <div class="inline-menu status-menu">
                         @for (status of statuses; track status.id) {
                           @if (status.id) {
@@ -120,12 +129,13 @@
                     }
                   </div>
                 </div>
+
                 <div class="assignee-column">
                   <div class="inline-dropdown assignee-dropdown" (click)="$event.stopPropagation()">
                     <button
                       type="button"
                       class="assignee-value assignee-button"
-                      [disabled]="updatingTaskId === task.id"
+                      [disabled]="readOnly || updatingTaskId === task.id"
                       [title]="getAssigneeNames(task)"
                       (click)="toggleAssigneeMenu(task, $event)"
                     >
@@ -153,11 +163,12 @@
                       }
                       @if (updatingTaskId === task.id) {
                         <i class="fa-solid fa-spinner fa-spin assignee-chevron"></i>
-                      } @else {
+                      } @else if (!readOnly) {
                         <i class="fa-solid fa-chevron-down assignee-chevron"></i>
                       }
                     </button>
-                    @if (openAssigneeTaskId === task.id) {
+
+                    @if (!readOnly && openAssigneeTaskId === task.id) {
                       <div class="inline-menu assignee-menu">
                         <div class="assignee-menu-header">
                           @if (getAssigneeCount(task)) {
@@ -177,7 +188,7 @@
                           </button>
                         }
                         <div class="assignee-member-list">
-                          @for (member of members; track member.userId) {
+                          @for (member of assignableMembers; track member.userId) {
                             <button
                               type="button"
                               [class.active]="isAssigned(task, member.userId)"
@@ -201,7 +212,7 @@
                               </span>
                             </button>
                           }
-                          @if (!members.length) {
+                          @if (!assignableMembers.length) {
                             <div class="no-members">
                               <i class="fa-regular fa-user"></i>
                               <span>No workspace members</span>
@@ -212,24 +223,26 @@
                     }
                   </div>
                 </div>
+
                 <div class="priority-column">
                   <div class="inline-dropdown" (click)="$event.stopPropagation()">
                     <button
                       type="button"
                       class="priority priority-button"
                       [ngClass]="task.priority"
-                      [disabled]="updatingTaskId === task.id"
+                      [disabled]="readOnly || updatingTaskId === task.id"
                       (click)="togglePriorityMenu(task, $event)"
                     >
                       <span class="priority-dot"></span>
                       <span>{{ task.priority }}</span>
                       @if (updatingTaskId === task.id) {
                         <i class="fa-solid fa-spinner fa-spin"></i>
-                      } @else {
+                      } @else if (!readOnly) {
                         <i class="fa-solid fa-chevron-down"></i>
                       }
                     </button>
-                    @if (openPriorityTaskId === task.id) {
+
+                    @if (!readOnly && openPriorityTaskId === task.id) {
                       <div class="inline-menu priority-menu">
                         @for (priority of priorities; track priority.value) {
                           <button
@@ -248,6 +261,7 @@
                     }
                   </div>
                 </div>
+
                 <div class="due-column">
                   @if (task.dueDate) {
                     <span class="due-date" [class.overdue]="isOverdue(task)">
@@ -258,6 +272,7 @@
                     <span class="empty-value">No date</span>
                   }
                 </div>
+
                 <div class="files-column">
                   @if (task.attachments?.length) {
                     <button
@@ -273,35 +288,48 @@
                     <span class="empty-value">—</span>
                   }
                 </div>
+
                 <div class="actions-column">
-                  <div class="row-actions">
-                    <button type="button" title="Edit task" (click)="editTask(task, $event)">
-                      <i class="fa-solid fa-pen"></i>
-                    </button>
-                    <button
-                      type="button"
-                      class="delete-action"
-                      title="Delete task"
-                      (click)="deleteTask(task, $event)"
-                    >
-                      <i class="fa-regular fa-trash-can"></i>
-                    </button>
-                  </div>
+                  @if (!readOnly) {
+                    <div class="row-actions">
+                      <button type="button" title="Edit task" (click)="editTask(task, $event)">
+                        <i class="fa-solid fa-pen"></i>
+                      </button>
+                      <button
+                        type="button"
+                        class="delete-action"
+                        title="Delete task"
+                        (click)="deleteTask(task, $event)"
+                      >
+                        <i class="fa-regular fa-trash-can"></i>
+                      </button>
+                    </div>
+                  }
                 </div>
-                <div class="task-drag-preview" *cdkDragPreview>
-                  <i class="fa-solid fa-grip-vertical"></i>
-                  <div>
-                    <strong>{{ task.title }}</strong>
-                    <span>{{ getProjectName(task.projectId) }}</span>
+
+                @if (!readOnly) {
+                  <div class="task-drag-preview" *cdkDragPreview>
+                    <i class="fa-solid fa-grip-vertical"></i>
+                    <div>
+                      <strong>{{ task.title }}</strong>
+                      <span>{{ getProjectName(task.projectId) }}</span>
+                    </div>
                   </div>
-                </div>
+                }
               </div>
             }
+
             @if (!group.tasks.length) {
               <div class="empty-group">
                 <i class="fa-regular fa-circle-check"></i>
                 <span>No tasks in {{ group.label }}</span>
-                <small>Drag a task here to change its status.</small>
+                <small>
+                  {{
+                    readOnly
+                      ? 'No tasks are currently assigned to this status.'
+                      : 'Drag a task here to change its status.'
+                  }}
+                </small>
               </div>
             }
           </div>
@@ -309,11 +337,18 @@
       }
     </section>
   }
+
   @if (!groups.length) {
     <div class="empty-list">
       <i class="fa-solid fa-list-check"></i>
       <strong>No task statuses</strong>
-      <span>Create a status to start organizing tasks.</span>
+      <span>
+        {{
+          readOnly
+            ? 'No task statuses are available.'
+            : 'Create a status to start organizing tasks.'
+        }}
+      </span>
     </div>
   }
 </div>

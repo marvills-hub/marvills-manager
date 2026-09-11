@@ -9,6 +9,7 @@ import { ProjectLogoService } from '../../core/services/project-logo.service';
 import { ProjectService } from '../../core/services/project.service';
 import { ToastService } from '../../core/services/toast.service';
 import { TopbarService } from '../../core/services/top-bar.service';
+import { WorkspacePermissionService } from '../../core/services/workspace-permission.service';
 import { ConfirmationDialogComponent } from '../../shared/confirmation-dialog/confirmation-dialog.component';
 import { ProjectFormDrawerComponent } from '../../shared/project-form-drawer/project-form-drawer.component';
 
@@ -26,6 +27,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   private toast = inject(ToastService);
   private sanitizer = inject(DomSanitizer);
   private readonly topbarService = inject(TopbarService);
+  readonly permissions = inject(WorkspacePermissionService);
 
   projects: Project[] = [];
   searchQuery = '';
@@ -40,12 +42,16 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.topbarService.setPageContext({
       title: 'Projects',
-      description: 'Manage all your active and upcoming projects.',
       icon: 'fa-regular fa-folder',
     });
-    this.projectService.getProjects().subscribe((projects) => {
-      this.projects = projects;
-      this.refreshOpenProject(projects);
+    this.projectService.getProjects().subscribe({
+      next: (projects) => {
+        this.projects = projects;
+        this.refreshOpenProject(projects);
+      },
+      error: () => {
+        this.toast.error('Unable to load projects.');
+      },
     });
   }
 
@@ -54,11 +60,13 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   }
 
   openCreateForm(): void {
+    if (!this.permissions.canCreateProjects()) return;
     this.drawerProject = null;
     this.drawerOpen = true;
   }
 
   editProject(project: Project): void {
+    if (!this.permissions.canEditProjects()) return;
     this.drawerProject = project;
     this.drawerOpen = true;
   }
@@ -73,11 +81,12 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   }
 
   requestDeleteProject(project: Project): void {
-    if (!project.id || this.deletingProject) return;
+    if (!this.permissions.canDeleteProjects() || !project.id || this.deletingProject) return;
     this.projectPendingDeletion = project;
   }
 
   async confirmDeleteProject(): Promise<void> {
+    if (!this.permissions.canDeleteProjects()) return;
     const project = this.projectPendingDeletion;
     if (!project?.id || this.deletingProject) return;
     this.deletingProject = true;
