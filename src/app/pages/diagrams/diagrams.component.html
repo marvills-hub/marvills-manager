@@ -2,7 +2,6 @@
   <aside class="diagram-sidebar">
     <div class="sidebar-header">
       <div>
-        <span>WORKSPACE</span>
         <h3>Diagrams</h3>
       </div>
 
@@ -27,14 +26,26 @@
             (click)="selectDiagram(diagram)"
           >
             <div class="diagram-icon">
-              <i class="fa-solid fa-diagram-project"></i>
+              <i [class]="getDiagramTypeIcon(diagram.type)"></i>
             </div>
 
             <div class="diagram-details">
               <strong>{{ diagram.name }}</strong>
+
               <span>
                 {{ diagram.nodes.length || 0 }} nodes · {{ diagram.connections.length || 0 }} links
               </span>
+
+              <div class="diagram-meta">
+                <span>
+                  {{ getDiagramTypeLabel(diagram.type) }}
+                </span>
+
+                <span>
+                  <i class="fa-regular fa-folder"></i>
+                  {{ getProjectName(diagram.projectId) }}
+                </span>
+              </div>
             </div>
 
             @if (permissions.canManageContent()) {
@@ -61,7 +72,7 @@
           <div class="sidebar-state">
             <i class="fa-solid fa-diagram-project"></i>
             <strong>No diagrams yet</strong>
-            <span>Create your first workspace diagram.</span>
+            <span>Create your first workspace or project diagram.</span>
 
             @if (permissions.canManageContent()) {
               <button class="create-empty" type="button" (click)="openCreateDialog()">
@@ -79,10 +90,9 @@
     @if (selectedDiagram) {
       <div class="workspace-header">
         <div class="diagram-title">
-          <i class="fa-solid fa-diagram-project"></i>
+          <i [class]="getDiagramTypeIcon(selectedDiagram.type)"></i>
 
           <div>
-            <span>DIAGRAM</span>
             <h2>{{ selectedDiagram.name }}</h2>
           </div>
 
@@ -117,6 +127,7 @@
         [connections]="selectedDiagram.connections"
         [canManage]="permissions.canManageContent()"
         (graphChange)="updateGraph($event)"
+        (saveRequest)="saveDiagram()"
       />
     } @else {
       <div class="workspace-empty">
@@ -125,8 +136,9 @@
         </div>
 
         <h2>Visualize your systems</h2>
+
         <p>
-          Create diagrams for app architecture, workflows, database relationships and product ideas.
+          Create diagrams for architecture, workflows, database relationships and product ideas.
         </p>
 
         @if (permissions.canManageContent()) {
@@ -141,7 +153,7 @@
 
   @if (createDialogOpen) {
     <div class="modal-backdrop" (click)="closeCreateDialog()">
-      <div class="modal-dialog" (click)="$event.stopPropagation()">
+      <div class="modal-dialog create-diagram-dialog" (click)="$event.stopPropagation()">
         <div class="modal-header">
           <div>
             <span>NEW DIAGRAM</span>
@@ -153,15 +165,68 @@
           </button>
         </div>
 
-        <label>
-          Diagram Name
-          <input
-            type="text"
-            [(ngModel)]="newDiagramName"
-            placeholder="e.g. CaféCraft Architecture"
-            (keyup.enter)="createDiagram()"
-          />
-        </label>
+        <div class="create-form">
+          <label>
+            Diagram Name
+
+            <input
+              type="text"
+              [(ngModel)]="newDiagramName"
+              placeholder="e.g. CaféCraft Architecture"
+            />
+          </label>
+
+          <label>
+            Project
+
+            <select [(ngModel)]="selectedProjectId">
+              <option value="">Workspace Diagram</option>
+
+              @for (project of projects; track project.id) {
+                <option [value]="project.id">
+                  {{ project.name }}
+                </option>
+              }
+            </select>
+          </label>
+        </div>
+
+        <div class="template-section">
+          <div class="template-header">
+            <div>
+              <span>TEMPLATE</span>
+              <h3>Choose a starting point</h3>
+            </div>
+
+            <span> {{ templates.length }} templates </span>
+          </div>
+
+          <div class="template-grid">
+            @for (template of templates; track template.type) {
+              <button
+                class="template-card"
+                type="button"
+                [class.active]="selectedTemplateType === template.type"
+                (click)="selectTemplate(template.type)"
+              >
+                <div class="template-icon">
+                  <i [class]="template.icon"></i>
+                </div>
+
+                <div>
+                  <strong>{{ template.name }}</strong>
+                  <span>{{ template.description }}</span>
+                </div>
+
+                @if (selectedTemplateType === template.type) {
+                  <div class="template-check">
+                    <i class="fa-solid fa-check"></i>
+                  </div>
+                }
+              </button>
+            }
+          </div>
+        </div>
 
         <div class="modal-actions">
           <button class="secondary-button" type="button" (click)="closeCreateDialog()">
@@ -179,7 +244,7 @@
               Creating...
             } @else {
               <i class="fa-solid fa-plus"></i>
-              Create
+              Create Diagram
             }
           </button>
         </div>
@@ -203,6 +268,7 @@
 
         <label>
           Diagram Name
+
           <input type="text" [(ngModel)]="renameValue" (keyup.enter)="renameDiagram()" />
         </label>
 
@@ -234,8 +300,8 @@
         <h2>Delete diagram?</h2>
 
         <p>
-          <strong>{{ diagram.name }}</strong> and all of its nodes and connections will be
-          permanently deleted.
+          <strong>{{ diagram.name }}</strong>
+          and all of its nodes and connections will be permanently deleted.
         </p>
 
         <div class="modal-actions">

@@ -1,253 +1,934 @@
 <section class="diagram-editor">
   <div class="editor-toolbar">
-    <div class="shape-tools">
-      <button type="button" [disabled]="!canManage" (click)="addNode('rectangle')">
-        <span class="shape-icon rectangle"></span>
-        Rectangle
-      </button>
-
-      <button type="button" [disabled]="!canManage" (click)="addNode('rounded')">
-        <span class="shape-icon rounded"></span>
-        Rounded
-      </button>
-
-      <button type="button" [disabled]="!canManage" (click)="addNode('circle')">
-        <span class="shape-icon circle"></span>
-        Circle
-      </button>
-
-      <button type="button" [disabled]="!canManage" (click)="addNode('diamond')">
-        <span class="shape-icon diamond"></span>
-        Diamond
-      </button>
-
-      <button type="button" [disabled]="!canManage" (click)="addNode('text')">
-        <i class="fa-solid fa-font"></i>
-        Text
-      </button>
+    <div class="toolbar-left">
+      <details #shapesDropdown class="toolbar-dropdown add-dropdown" name="diagram-toolbar">
+        <summary>
+          <i class="fa-solid fa-shapes"></i>
+          <span>Shapes</span>
+          <i class="fa-solid fa-chevron-down dropdown-chevron"></i>
+        </summary>
+        <div class="toolbar-menu shapes-menu">
+          <div class="toolbar-menu-title">Add shape</div>
+          <div class="shape-menu-grid">
+            @for (type of nodeTypes; track type.value) {
+              @if (type.value !== 'table' && type.value !== 'project') {
+                <button
+                  type="button"
+                  [disabled]="!canManage"
+                  (click)="addNode(type.value); shapesDropdown.removeAttribute('open')"
+                >
+                  @if (type.value === 'text') {
+                    <i class="fa-solid fa-font"></i>
+                  } @else {
+                    <span class="shape-icon" [class]="'shape-icon ' + type.value"></span>
+                  }
+                  <span>{{ type.label }}</span>
+                </button>
+              }
+            }
+          </div>
+          <div class="toolbar-menu-divider"></div>
+          <button
+            class="menu-wide-action"
+            type="button"
+            [disabled]="!canManage"
+            (click)="addTableNode(); shapesDropdown.removeAttribute('open')"
+          >
+            <i class="fa-solid fa-table-cells"></i>
+            <span>Table</span>
+          </button>
+          @if (projects.length) {
+            <label class="menu-project-picker">
+              <i class="fa-solid fa-folder-tree"></i>
+              <select
+                [ngModel]="null"
+                [disabled]="!canManage"
+                (ngModelChange)="
+                  $event && addProjectNode($event); $event && shapesDropdown.removeAttribute('open')
+                "
+              >
+                <option [ngValue]="null">Add project node</option>
+                @for (project of projects; track project.projectId) {
+                  <option [ngValue]="project">{{ project.name }}</option>
+                }
+              </select>
+            </label>
+          }
+        </div>
+      </details>
+      <details
+        #connectorDropdown
+        class="toolbar-dropdown connector-dropdown"
+        [class.tool-active]="connectorToolActive"
+        name="diagram-toolbar"
+      >
+        <summary>
+          <i class="fa-solid fa-share-nodes"></i>
+          <span>Connectors</span>
+          <i class="fa-solid fa-chevron-down dropdown-chevron"></i>
+        </summary>
+        <div class="toolbar-menu connector-menu">
+          <div class="toolbar-menu-title">Connector type</div>
+          <div class="connector-type-grid">
+            @for (type of connectionTypes; track type.value) {
+              <button
+                type="button"
+                [class.active]="connectorToolActive && connectionType === type.value"
+                (click)="
+                  activateConnectorTool(type.value); connectorDropdown.removeAttribute('open')
+                "
+              >
+                <span class="connector-preview" [attr.data-type]="type.value"></span>
+                <span>{{ type.label }}</span>
+              </button>
+            }
+          </div>
+          <div class="toolbar-menu-divider"></div>
+          <div class="toolbar-menu-title">Line style</div>
+          <div class="connector-style-grid">
+            @for (style of connectionStyles; track style.value) {
+              <button
+                type="button"
+                [class.active]="connectionStyle === style.value"
+                (click)="connectionStyle = style.value; connectorDropdown.removeAttribute('open')"
+              >
+                <span
+                  class="line-style-preview"
+                  [class]="'line-style-preview ' + style.value"
+                ></span>
+                <span>{{ style.label }}</span>
+              </button>
+            }
+          </div>
+        </div>
+      </details>
+      <details #gridDropdown class="toolbar-dropdown grid-dropdown" name="diagram-toolbar">
+        <summary>
+          <i class="fa-solid fa-border-all"></i>
+          <span>Grid</span>
+          <i class="fa-solid fa-chevron-down dropdown-chevron"></i>
+        </summary>
+        <div class="toolbar-menu compact-menu">
+          <button
+            class="menu-toggle"
+            type="button"
+            [class.active]="gridSettings.enabled"
+            (click)="toggleGrid(); gridDropdown.removeAttribute('open')"
+          >
+            <i class="fa-solid fa-border-all"></i><span>Show grid</span
+            ><i class="fa-solid fa-check toggle-check"></i>
+          </button>
+          <button
+            class="menu-toggle"
+            type="button"
+            [class.active]="gridSettings.snap"
+            (click)="toggleSnap(); gridDropdown.removeAttribute('open')"
+          >
+            <i class="fa-solid fa-magnet"></i><span>Snap to grid</span
+            ><i class="fa-solid fa-check toggle-check"></i>
+          </button>
+          <label class="menu-select-control">
+            <span>Grid size</span>
+            <select
+              [ngModel]="gridSettings.size"
+              (ngModelChange)="setGridSize($event); gridDropdown.removeAttribute('open')"
+            >
+              @for (size of gridSizes; track size) {
+                <option [ngValue]="size">{{ size }}px</option>
+              }
+            </select>
+          </label>
+        </div>
+      </details>
+      <details #exportDropdown class="toolbar-dropdown export-dropdown" name="diagram-toolbar">
+        <summary>
+          <i class="fa-solid fa-arrow-up-from-bracket"></i>
+          <span>Export</span>
+          <i class="fa-solid fa-chevron-down dropdown-chevron"></i>
+        </summary>
+        <div class="toolbar-menu compact-menu">
+          <button
+            type="button"
+            (click)="exportDiagram('png'); exportDropdown.removeAttribute('open')"
+          >
+            <i class="fa-regular fa-image"></i><span>Export PNG</span>
+          </button>
+          <button
+            type="button"
+            (click)="exportDiagram('svg'); exportDropdown.removeAttribute('open')"
+          >
+            <i class="fa-solid fa-bezier-curve"></i><span>Export SVG</span>
+          </button>
+          <button
+            type="button"
+            (click)="exportDiagram('pdf'); exportDropdown.removeAttribute('open')"
+          >
+            <i class="fa-regular fa-file-pdf"></i><span>Export PDF</span>
+          </button>
+        </div>
+      </details>
+      @if (diagramId && workspaceId) {
+        <details
+          #versionsDropdown
+          class="toolbar-dropdown versions-dropdown"
+          name="diagram-toolbar"
+        >
+          <summary>
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span>Versions</span>
+            @if (versions.length) {
+              <span class="toolbar-count">{{ versions.length }}</span>
+            }
+            <i class="fa-solid fa-chevron-down dropdown-chevron"></i>
+          </summary>
+          <div class="toolbar-menu versions-menu">
+            <div class="version-create-row">
+              <input #versionName type="text" placeholder="Version name" [disabled]="!canManage" />
+              <button
+                type="button"
+                [disabled]="!canManage"
+                (click)="
+                  createVersion(versionName.value);
+                  versionName.value = '';
+                  versionsDropdown.removeAttribute('open')
+                "
+              >
+                <i class="fa-solid fa-camera-retro"></i>
+              </button>
+            </div>
+            <div class="toolbar-menu-title">Version history</div>
+            @if (versionsLoading) {
+              <div class="toolbar-menu-empty">
+                <i class="fa-solid fa-spinner fa-spin"></i> Loading versions...
+              </div>
+            } @else if (!versions.length) {
+              <div class="toolbar-menu-empty">No saved versions yet.</div>
+            }
+            @for (version of versions; track version.id || $index) {
+              <div class="version-item">
+                <div class="version-details">
+                  <strong>{{ version.name }}</strong>
+                  @if (version.createdAt) {
+                    <span>{{ $any(version.createdAt).toDate() | date: 'MMM d, y h:mm a' }}</span>
+                  }
+                </div>
+                <div class="version-actions">
+                  <button
+                    type="button"
+                    [disabled]="!canManage"
+                    title="Restore version"
+                    (click)="restoreVersion(version); versionsDropdown.removeAttribute('open')"
+                  >
+                    <i class="fa-solid fa-arrow-rotate-left"></i>
+                  </button>
+                  <button
+                    type="button"
+                    [disabled]="!canManage"
+                    title="Delete version"
+                    (click)="deleteVersion(version); versionsDropdown.removeAttribute('open')"
+                  >
+                    <i class="fa-regular fa-trash-can"></i>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        </details>
+      }
     </div>
-
     <div class="toolbar-right">
       @if (connectionSourceId) {
         <button class="connecting-state" type="button" (click)="cancelConnection()">
-          <i class="fa-solid fa-link"></i>
-          Select target node
-          <i class="fa-solid fa-xmark"></i>
+          <i class="fa-solid fa-link"></i><span>Select target point</span
+          ><i class="fa-solid fa-xmark"></i>
         </button>
       }
-
-      @if (getSelectedConnection(); as selectedConnection) {
-        <div class="connection-toolbar">
-          <select
-            [ngModel]="selectedConnection.type"
-            [disabled]="!canManage"
-            (ngModelChange)="updateSelectedConnectionType($event)"
-          >
-            @for (type of connectionTypes; track type.value) {
-              <option [value]="type.value">
-                {{ type.label }}
-              </option>
-            }
-          </select>
-
-          <button
-            type="button"
-            title="Delete connection"
-            [disabled]="!canManage"
-            (click)="deleteSelectedConnection()"
-          >
-            <i class="fa-regular fa-trash-can"></i>
-          </button>
-        </div>
-      }
-
+      <div class="history-tools">
+        <button
+          type="button"
+          title="Undo (Ctrl + Z)"
+          [disabled]="!canManage || !history.canUndo()"
+          (click)="undo()"
+        >
+          <i class="fa-solid fa-rotate-left"></i>
+        </button>
+        <button
+          type="button"
+          title="Redo (Ctrl + Y / Ctrl + Shift + Z)"
+          [disabled]="!canManage || !history.canRedo()"
+          (click)="redo()"
+        >
+          <i class="fa-solid fa-rotate-right"></i>
+        </button>
+      </div>
       <div class="zoom-tools">
         <button type="button" title="Zoom out" (click)="zoomOut()">
           <i class="fa-solid fa-minus"></i>
         </button>
-
-        <button class="zoom-value" type="button" (click)="resetZoom()">
+        <button class="zoom-value" type="button" title="Reset zoom" (click)="resetZoom()">
           {{ zoom * 100 | number: '1.0-0' }}%
         </button>
-
         <button type="button" title="Zoom in" (click)="zoomIn()">
           <i class="fa-solid fa-plus"></i>
         </button>
       </div>
     </div>
   </div>
-
-  <div class="canvas-scroll">
-    <div class="diagram-canvas" [style.transform]="'scale(' + zoom + ')'" (click)="deselect()">
-      <svg class="connections-layer">
-        <defs>
-          <marker
-            id="diagram-arrow"
-            markerWidth="9"
-            markerHeight="9"
-            refX="8"
-            refY="3"
-            orient="auto"
-            markerUnits="strokeWidth"
-          >
-            <path d="M0,0 L0,6 L9,3 z"></path>
-          </marker>
-
-          <marker
-            id="diagram-one"
-            markerWidth="10"
-            markerHeight="14"
-            refX="5"
-            refY="7"
-            orient="auto-start-reverse"
-            markerUnits="strokeWidth"
-          >
-            <path d="M5,1 L5,13"></path>
-          </marker>
-
-          <marker
-            id="diagram-zero"
-            markerWidth="12"
-            markerHeight="12"
-            refX="6"
-            refY="6"
-            orient="auto-start-reverse"
-            markerUnits="strokeWidth"
-          >
-            <circle cx="6" cy="6" r="4"></circle>
-          </marker>
-
-          <marker
-            id="diagram-many-start"
-            markerWidth="14"
-            markerHeight="14"
-            refX="2"
-            refY="7"
-            orient="auto"
-            markerUnits="strokeWidth"
-          >
-            <path d="M2,7 L12,1 M2,7 L12,7 M2,7 L12,13"></path>
-          </marker>
-
-          <marker
-            id="diagram-many-end"
-            markerWidth="14"
-            markerHeight="14"
-            refX="12"
-            refY="7"
-            orient="auto"
-            markerUnits="strokeWidth"
-          >
-            <path d="M12,7 L2,1 M12,7 L2,7 M12,7 L2,13"></path>
-          </marker>
-        </defs>
-
-        @for (connection of localConnections; track connection.id) {
-          @if (getConnectionSource(connection); as source) {
-            @if (getConnectionTarget(connection); as target) {
+  <div
+    #canvasScroll
+    class="canvas-scroll"
+    [class.pan-ready]="spacePressed"
+    [class.panning]="isPanning"
+    (wheel)="handleCanvasWheel($event)"
+  >
+    <div
+      class="canvas-stage"
+      [style.width.px]="canvasWidth * zoom"
+      [style.height.px]="canvasHeight * zoom"
+    >
+      <div
+        #diagramCanvas
+        class="diagram-canvas diagram-world"
+        [class.grid-enabled]="gridSettings.enabled"
+        [style.--grid-size]="gridSettings.size + 'px'"
+        [style.width.px]="canvasWidth"
+        [style.height.px]="canvasHeight"
+        [style.transform]="'scale(' + zoom + ')'"
+        (click)="canvasClick($event)"
+        (pointerdown)="startCanvasPointer($event)"
+        (mousemove)="canvasMouseMove($event)"
+        (contextmenu)="openCanvasContextMenu($event)"
+      >
+        @if (selection.marqueeRect; as marquee) {
+          <div
+            class="selection-marquee"
+            [style.left.px]="marquee.x"
+            [style.top.px]="marquee.y"
+            [style.width.px]="marquee.width"
+            [style.height.px]="marquee.height"
+          ></div>
+        }
+        <svg class="connections-layer">
+          <defs>
+            <marker
+              id="diagram-arrow"
+              markerWidth="14"
+              markerHeight="14"
+              refX="12"
+              refY="7"
+              orient="auto-start-reverse"
+              markerUnits="userSpaceOnUse"
+              overflow="visible"
+            >
+              <path d="M2,1 L12,7 L2,13 Z" fill="context-stroke"></path>
+            </marker>
+            <marker
+              id="diagram-one"
+              markerWidth="22"
+              markerHeight="18"
+              refX="20"
+              refY="9"
+              orient="auto-start-reverse"
+              markerUnits="userSpaceOnUse"
+              overflow="visible"
+            >
+              <path d="M10,2 L10,16" fill="none" stroke="context-stroke" stroke-width="2"></path>
+            </marker>
+            <marker
+              id="diagram-zero"
+              markerWidth="22"
+              markerHeight="18"
+              refX="20"
+              refY="9"
+              orient="auto-start-reverse"
+              markerUnits="userSpaceOnUse"
+              overflow="visible"
+            >
+              <circle
+                cx="10"
+                cy="9"
+                r="4.5"
+                fill="var(--surface)"
+                stroke="context-stroke"
+                stroke-width="2"
+              ></circle>
+            </marker>
+            <marker
+              id="diagram-many"
+              markerWidth="22"
+              markerHeight="18"
+              refX="20"
+              refY="9"
+              orient="auto-start-reverse"
+              markerUnits="userSpaceOnUse"
+              overflow="visible"
+            >
+              <path
+                d="M4,9 L12,2 M4,9 L12,9 M4,9 L12,16"
+                fill="none"
+                stroke="context-stroke"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              ></path>
+            </marker>
+          </defs>
+          @for (connection of localConnections; track connection.id) {
+            <g
+              class="connection"
+              [class.editable]="canManage"
+              [class.selected]="selection.isConnectionSelected(connection.id)"
+              (click)="selectConnection(connection, $event)"
+              (contextmenu)="openConnectionContextMenu(connection, $event)"
+              (dblclick)="addConnectionBendAtPoint(connection, $event)"
+            >
+              <path class="connection-hitbox" [attr.d]="connectionPath(connection)"></path>
+              <path
+                class="connection-line"
+                [attr.d]="connectionPath(connection)"
+                [style.stroke]="connection.color"
+                [attr.stroke-dasharray]="connectionService.getDashArray(connection.style)"
+                [attr.marker-start]="connectionService.getStartMarker(connection.type)"
+                [attr.marker-end]="connectionService.getEndMarker(connection.type)"
+              ></path>
+            </g>
+            @for (label of connection.labels || []; track label.id) {
               <g
-                class="connection"
-                [class.editable]="canManage"
-                [class.selected]="selectedConnectionId === connection.id"
-                (click)="selectConnection(connection, $event)"
+                class="connection-label-group"
+                [class.selected]="selection.selectedConnectionLabelId === label.id"
+                [attr.transform]="'translate(' + label.x + ' ' + label.y + ')'"
+                (click)="selectConnectionLabel(connection, label, $event)"
+                (pointerdown)="startConnectionLabelDrag(connection, label, $event)"
               >
-                <line
-                  class="connection-hitbox"
-                  [attr.x1]="getConnectionStartX(source, target)"
-                  [attr.y1]="getConnectionStartY(source, target)"
-                  [attr.x2]="getConnectionEndX(source, target)"
-                  [attr.y2]="getConnectionEndY(source, target)"
-                ></line>
-
-                <line
-                  class="connection-line"
-                  [attr.x1]="getConnectionStartX(source, target)"
-                  [attr.y1]="getConnectionStartY(source, target)"
-                  [attr.x2]="getConnectionEndX(source, target)"
-                  [attr.y2]="getConnectionEndY(source, target)"
-                  [attr.marker-start]="getStartMarker(connection)"
-                  [attr.marker-end]="getEndMarker(connection)"
-                ></line>
+                <rect
+                  class="connection-label-background"
+                  x="-40"
+                  y="-11"
+                  width="80"
+                  height="22"
+                  rx="5"
+                ></rect>
+                <text class="connection-label" x="0" y="0" [style.fill]="connection.color">
+                  {{ label.text }}
+                </text>
               </g>
             }
           }
+          @if (connectionPreviewSource; as source) {
+            <line
+              class="connection-preview"
+              [attr.x1]="
+                geometry.getPortCenter(source, connectionSourceSide || 'right', drag.dragPositions)
+                  .x
+              "
+              [attr.y1]="
+                geometry.getPortCenter(source, connectionSourceSide || 'right', drag.dragPositions)
+                  .y
+              "
+              [attr.x2]="previewX"
+              [attr.y2]="previewY"
+              [attr.stroke-dasharray]="connectionService.getDashArray(connectionStyle)"
+            ></line>
+          }
+        </svg>
+        @for (node of localNodes; track node.id) {
+          <div
+            class="diagram-node"
+            cdkDrag
+            cdkDragBoundary=".diagram-canvas"
+            [cdkDragDisabled]="!canManage || editingNodeId === node.id"
+            [cdkDragScale]="zoom"
+            [cdkDragFreeDragPosition]="drag.getNodeDragPosition(node)"
+            [class.selected]="selection.isNodeSelected(node.id)"
+            [class.editing]="editingNodeId === node.id"
+            [class.connection-source]="connectionSourceId === node.id"
+            [class.rectangle]="node.type === 'rectangle'"
+            [class.rounded]="node.type === 'rounded'"
+            [class.circle]="node.type === 'circle'"
+            [class.diamond]="node.type === 'diamond'"
+            [class.text-node]="node.type === 'text'"
+            [class.ellipse]="node.type === 'ellipse'"
+            [class.triangle]="node.type === 'triangle'"
+            [class.hexagon]="node.type === 'hexagon'"
+            [class.parallelogram]="node.type === 'parallelogram'"
+            [class.cylinder]="node.type === 'cylinder'"
+            [class.document]="node.type === 'document'"
+            [class.cloud]="node.type === 'cloud'"
+            [class.terminator]="node.type === 'terminator'"
+            [class.process]="node.type === 'process'"
+            [class.subprocess]="node.type === 'subprocess'"
+            [class.note]="node.type === 'note'"
+            [class.table-node]="node.type === 'table'"
+            [class.project-node]="node.type === 'project'"
+            [style.width.px]="node.width"
+            [style.height.px]="node.height"
+            [style.background]="node.background"
+            [style.color]="node.color"
+            [style.border-color]="node.borderColor"
+            [style.z-index]="node.zIndex"
+            (click)="selectNode(node, $event)"
+            (contextmenu)="openNodeContextMenu(node, $event)"
+            (cdkDragMoved)="nodeDragMoved(node, $event)"
+            (cdkDragEnded)="nodeDragEnded(node, $event)"
+          >
+            @if (selection.selectedNodeId === node.id && canManage && editingNodeId !== node.id) {
+              <div
+                class="selection-inspector node-inspector"
+                (pointerdown)="$event.stopPropagation()"
+                (click)="$event.stopPropagation()"
+              >
+                @if (node.type !== 'text' && node.type !== 'table' && node.type !== 'project') {
+                  <label class="inspector-color" title="Border color">
+                    <span>Border</span>
+                    <input
+                      type="color"
+                      [value]="getColorInputValue(node.borderColor, '#536fff')"
+                      (change)="updateSelectedNodeBorderColor($any($event.target).value)"
+                    />
+                  </label>
+                  <label class="inspector-color" title="Fill color">
+                    <span>Fill</span>
+                    <input
+                      type="color"
+                      [value]="getColorInputValue(node.background, '#17243a')"
+                      (change)="updateSelectedNodeBackgroundColor($any($event.target).value)"
+                    />
+                  </label>
+                }
+                @if (node.type !== 'table' && node.type !== 'project') {
+                  <label class="inspector-color" title="Text color">
+                    <span>Text</span>
+                    <input
+                      type="color"
+                      [value]="getColorInputValue(node.color, '#eaf1ff')"
+                      (change)="updateSelectedNodeTextColor($any($event.target).value)"
+                    />
+                  </label>
+                }
+                @if (node.type === 'table' && node.table) {
+                  <button type="button" title="Add row" (click)="addTableRow(node)">
+                    <i class="fa-solid fa-table-list"></i>
+                  </button>
+                  <button type="button" title="Add column" (click)="addTableColumn(node)">
+                    <i class="fa-solid fa-table-columns"></i>
+                  </button>
+                  <button
+                    type="button"
+                    [class.active]="node.table.headerRow"
+                    title="Toggle header"
+                    (click)="toggleTableHeader(node)"
+                  >
+                    <i class="fa-solid fa-heading"></i>
+                  </button>
+                }
+                <span class="inspector-divider"></span>
+                <button type="button" title="Duplicate" (click)="duplicateNode(node, $event)">
+                  <i class="fa-regular fa-copy"></i>
+                </button>
+                <button
+                  class="danger"
+                  type="button"
+                  title="Delete"
+                  (click)="deleteNode(node, $event)"
+                >
+                  <i class="fa-regular fa-trash-can"></i>
+                </button>
+              </div>
+            }
+            @for (side of connectorSides; track side) {
+              <button
+                class="connector-handle {{ side }}"
+                [class.node-selected]="selection.isNodeSelected(node.id)"
+                [class.active]="connectionSourceId === node.id && connectionSourceSide === side"
+                [class.connected]="
+                  connectionService.isPortConnected(node.id, side, localConnections)
+                "
+                [class.readonly]="!canManage"
+                [style.--port-color]="getPortColor(node.id, side)"
+                type="button"
+                [disabled]="!canManage"
+                [title]="canManage ? 'Connect from ' + side : 'Connection point'"
+                [attr.aria-label]="'Connect from ' + side"
+                (pointerdown)="$event.stopPropagation()"
+                (click)="startConnectionFromHandle(node, side, $event)"
+              ></button>
+            }
+            @if (node.type === 'diamond') {
+              <div
+                class="diamond-shape"
+                [style.border-color]="node.borderColor"
+                [style.background]="node.background"
+              ></div>
+            }
+            @if (
+              node.type === 'triangle' ||
+              node.type === 'hexagon' ||
+              node.type === 'parallelogram' ||
+              node.type === 'cylinder' ||
+              node.type === 'document' ||
+              node.type === 'cloud' ||
+              node.type === 'note'
+            ) {
+              <div
+                class="node-shape-surface"
+                [ngClass]="node.type + '-shape'"
+                [style.--node-fill]="node.background"
+                [style.--node-border]="node.borderColor"
+              ></div>
+            }
+            @if (node.type === 'table' && node.table; as table) {
+              <div
+                class="diagram-table"
+                [class.has-header]="table.headerRow"
+                (pointerdown)="$event.stopPropagation()"
+                (click)="$event.stopPropagation()"
+              >
+                @for (row of table.rows; track row.id; let rowIndex = $index) {
+                  <div
+                    class="diagram-table-row"
+                    [class.header-row]="table.headerRow && rowIndex === 0"
+                  >
+                    @for (cell of row.cells; track cell.id; let columnIndex = $index) {
+                      <div class="diagram-table-cell">
+                        <input
+                          type="text"
+                          [value]="cell.value"
+                          [disabled]="!canManage"
+                          (pointerdown)="$event.stopPropagation()"
+                          (click)="$event.stopPropagation()"
+                          (input)="
+                            updateTableCell(node, rowIndex, columnIndex, $any($event.target).value)
+                          "
+                        />
+                        @if (canManage && rowIndex === 0 && table.columns > 1) {
+                          <button
+                            class="table-column-delete"
+                            type="button"
+                            title="Delete column"
+                            (pointerdown)="$event.stopPropagation()"
+                            (click)="$event.stopPropagation(); deleteTableColumn(node, columnIndex)"
+                          >
+                            <i class="fa-solid fa-xmark"></i>
+                          </button>
+                        }
+                      </div>
+                    }
+                    @if (canManage && table.rows.length > 1) {
+                      <button
+                        class="table-row-delete"
+                        type="button"
+                        title="Delete row"
+                        (pointerdown)="$event.stopPropagation()"
+                        (click)="$event.stopPropagation(); deleteTableRow(node, rowIndex)"
+                      >
+                        <i class="fa-solid fa-xmark"></i>
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            } @else if (node.type === 'project' && node.project; as project) {
+              <div class="project-node-content">
+                <div class="project-node-icon">
+                  <i class="fa-solid fa-folder-tree"></i>
+                </div>
+                <div class="project-node-info">
+                  <strong>{{ project.name }}</strong>
+                  @if (project.status) {
+                    <span class="project-node-status">{{ project.status }}</span>
+                  }
+                  @if (project.progress !== undefined) {
+                    <div class="project-progress">
+                      <span [style.width.%]="project.progress"></span>
+                    </div>
+                    <small>{{ project.progress }}%</small>
+                  }
+                </div>
+              </div>
+            } @else {
+              <textarea
+                #nodeTextarea
+                class="node-text"
+                [class.editing]="editingNodeId === node.id"
+                [value]="node.text"
+                [disabled]="!canManage"
+                spellcheck="false"
+                (pointerdown)="startNodeTextEdit(node, $event)"
+                (click)="$event.stopPropagation()"
+                (input)="updateNodeText(node, $any($event.target).value, nodeTextarea)"
+                (blur)="endNodeTextEdit(node)"
+              ></textarea>
+            }
+            @if (selection.selectedNodeId === node.id && canManage && editingNodeId !== node.id) {
+              <button
+                class="resize-handle"
+                type="button"
+                title="Resize"
+                (pointerdown)="startResize(node, $event)"
+              ></button>
+            }
+          </div>
         }
-      </svg>
-
-      @for (node of localNodes; track node.id) {
-        <div
-          class="diagram-node"
-          cdkDrag
-          cdkDragBoundary=".diagram-canvas"
-          [cdkDragDisabled]="!canManage"
-          [cdkDragScale]="zoom"
-          [cdkDragFreeDragPosition]="{ x: node.x, y: node.y }"
-          [class.selected]="selectedNodeId === node.id"
-          [class.connection-source]="connectionSourceId === node.id"
-          [class.rectangle]="node.type === 'rectangle'"
-          [class.rounded]="node.type === 'rounded'"
-          [class.circle]="node.type === 'circle'"
-          [class.diamond]="node.type === 'diamond'"
-          [class.text-node]="node.type === 'text'"
-          [style.width.px]="node.width"
-          [style.height.px]="node.height"
-          [style.background]="node.background"
-          [style.color]="node.color"
-          [style.border-color]="node.borderColor"
-          [style.z-index]="node.zIndex"
-          (click)="selectNode(node, $event)"
-          (cdkDragEnded)="nodeDragEnded(node, $event)"
-        >
-          @if (selectedNodeId === node.id && canManage) {
-            <div class="node-actions" (click)="$event.stopPropagation()">
-              <button type="button" title="Connect" (click)="startConnection(node, $event)">
-                <i class="fa-solid fa-arrow-right-long"></i>
+        @if (connectorToolActive && connectorDraftStart && connectorDraftEnd) {
+          <svg class="connector-draft-layer">
+            <g class="connector-draft">
+              <line
+                class="connector-draft-line"
+                [attr.x1]="connectorDraftStart.x"
+                [attr.y1]="connectorDraftStart.y"
+                [attr.x2]="connectorDraftEnd.x"
+                [attr.y2]="connectorDraftEnd.y"
+                [attr.stroke-dasharray]="connectionService.getDashArray(connectionStyle)"
+                [attr.marker-start]="connectionService.getStartMarker(connectionType)"
+                [attr.marker-end]="connectionService.getEndMarker(connectionType)"
+              ></line>
+              <circle
+                class="connector-draft-handle source"
+                [class.attached]="!!connectorDraftSourceNodeId"
+                [attr.cx]="connectorDraftStart.x"
+                [attr.cy]="connectorDraftStart.y"
+                r="8"
+                (pointerdown)="startConnectorDraftEndpointDrag('source', $event)"
+              ></circle>
+              <circle
+                class="connector-draft-handle target"
+                [class.attached]="!!connectorDraftTargetNodeId"
+                [attr.cx]="connectorDraftEnd.x"
+                [attr.cy]="connectorDraftEnd.y"
+                r="8"
+                (pointerdown)="startConnectorDraftEndpointDrag('target', $event)"
+              ></circle>
+              <text
+                class="connector-draft-hint"
+                [attr.x]="(connectorDraftStart.x + connectorDraftEnd.x) / 2"
+                [attr.y]="(connectorDraftStart.y + connectorDraftEnd.y) / 2 - 16"
+              >
+                Drag each end onto a shape
+              </text>
+            </g>
+          </svg>
+        }
+        @if (selection.selectedConnectionIds.size === 1 && selection.selectedNodeIds.size === 0) {
+          @if (selectedConnection; as selectedConnection) {
+            <svg class="connection-controls-layer">
+              <circle
+                class="connection-endpoint source"
+                [attr.cx]="
+                  geometry.getConnectionSourcePoint(
+                    selectedConnection,
+                    localNodes,
+                    drag.dragPositions
+                  ).x
+                "
+                [attr.cy]="
+                  geometry.getConnectionSourcePoint(
+                    selectedConnection,
+                    localNodes,
+                    drag.dragPositions
+                  ).y
+                "
+                [style.stroke]="selectedConnection.color"
+                title="Drag to move source"
+                (pointerdown)="startConnectionReconnect(selectedConnection, 'source', $event)"
+              ></circle>
+              @for (bend of selectedConnection.bendPoints || []; track $index) {
+                <circle
+                  class="connection-bend-handle"
+                  [attr.cx]="bend.x"
+                  [attr.cy]="bend.y"
+                  [style.stroke]="selectedConnection.color"
+                  title="Drag bend point"
+                  (pointerdown)="startConnectionBend(selectedConnection, $index, $event)"
+                  (dblclick)="deleteConnectionBend(selectedConnection, $index, $event)"
+                ></circle>
+              }
+              <circle
+                class="connection-endpoint target"
+                [attr.cx]="
+                  geometry.getConnectionTargetPoint(
+                    selectedConnection,
+                    localNodes,
+                    drag.dragPositions
+                  ).x
+                "
+                [attr.cy]="
+                  geometry.getConnectionTargetPoint(
+                    selectedConnection,
+                    localNodes,
+                    drag.dragPositions
+                  ).y
+                "
+                [style.stroke]="selectedConnection.color"
+                title="Drag to move target"
+                (pointerdown)="startConnectionReconnect(selectedConnection, 'target', $event)"
+              ></circle>
+            </svg>
+          }
+        }
+        @if (selection.selectedConnectionIds.size === 1 && selection.selectedNodeIds.size === 0) {
+          @if (selectedConnection; as selectedConnection) {
+            <div
+              class="selection-inspector connection-inspector"
+              [style.left.px]="
+                connectionService.getConnectionCenter(
+                  selectedConnection,
+                  localNodes,
+                  drag.dragPositions
+                ).x
+              "
+              [style.top.px]="
+                connectionService.getConnectionCenter(
+                  selectedConnection,
+                  localNodes,
+                  drag.dragPositions
+                ).y
+              "
+              (pointerdown)="$event.stopPropagation()"
+              (click)="$event.stopPropagation()"
+            >
+              <select
+                [ngModel]="selectedConnection.type"
+                title="Connection type"
+                (ngModelChange)="updateSelectedConnectionType($event)"
+              >
+                @for (type of connectionTypes; track type.value) {
+                  <option [value]="type.value">{{ type.label }}</option>
+                }
+              </select>
+              <select
+                [ngModel]="selectedConnection.style || 'solid'"
+                title="Line style"
+                (ngModelChange)="updateSelectedConnectionStyle($event)"
+              >
+                @for (style of connectionStyles; track style.value) {
+                  <option [value]="style.value">{{ style.label }}</option>
+                }
+              </select>
+              <label class="inspector-color icon-only" title="Connection color">
+                <input
+                  type="color"
+                  [value]="
+                    selectedConnection.color ||
+                    connectionService.getDefaultColor(selectedConnection.type)
+                  "
+                  (change)="updateSelectedConnectionColor($any($event.target).value)"
+                />
+              </label>
+              <button type="button" title="Add bend" (click)="addSelectedConnectionBend()">
+                <i class="fa-solid fa-code-branch"></i>
               </button>
-
-              <button type="button" title="Duplicate" (click)="duplicateNode(node, $event)">
-                <i class="fa-regular fa-copy"></i>
+              <button type="button" title="Add text" (click)="addSelectedConnectionLabel()">
+                <i class="fa-solid fa-font"></i>
               </button>
-
-              <button type="button" title="Delete" (click)="deleteNode(node, $event)">
+              @if (selectedConnection.bendPoints?.length) {
+                <button type="button" title="Reset bends" (click)="resetSelectedConnectionBends()">
+                  <i class="fa-solid fa-arrow-rotate-left"></i>
+                </button>
+              }
+              @if (selectedConnectionLabel; as selectedLabel) {
+                <input
+                  class="inspector-label-input"
+                  type="text"
+                  placeholder="Label"
+                  [value]="selectedLabel.text"
+                  (focus)="beginConnectionLabelEdit()"
+                  (input)="updateSelectedConnectionLabel($any($event.target).value)"
+                  (blur)="endConnectionLabelEdit()"
+                />
+              }
+              <span class="inspector-divider"></span>
+              <button
+                class="danger"
+                type="button"
+                title="Delete connection"
+                (click)="deleteSelection()"
+              >
                 <i class="fa-regular fa-trash-can"></i>
               </button>
             </div>
           }
-
-          @if (node.type === 'diamond') {
-            <div class="diamond-shape"></div>
-          }
-
-          <input
-            class="node-text"
-            type="text"
-            [value]="node.text"
-            [disabled]="!canManage"
+        }
+        @if (contextMenu; as menu) {
+          <div
+            class="diagram-context-menu"
+            [style.left.px]="menu.x"
+            [style.top.px]="menu.y"
+            (pointerdown)="$event.stopPropagation()"
             (click)="$event.stopPropagation()"
-            (input)="updateNodeText(node, $any($event.target).value)"
-          />
-
-          @if (selectedNodeId === node.id && canManage) {
-            <button
-              class="resize-handle"
-              type="button"
-              title="Resize"
-              (pointerdown)="startResize(node, $event)"
-            ></button>
-          }
-        </div>
-      }
-
-      @if (!localNodes.length) {
-        <div class="canvas-empty">
-          <div>
-            <i class="fa-solid fa-diagram-project"></i>
+            (contextmenu)="$event.preventDefault(); $event.stopPropagation()"
+          >
+            @if (selection.selectedNodeIds.size) {
+              <button
+                type="button"
+                [disabled]="!canManage"
+                (click)="duplicateSelection(); closeContextMenu()"
+              >
+                <i class="fa-regular fa-copy"></i><span>Duplicate</span><kbd>Ctrl+D</kbd>
+              </button>
+              <button
+                class="danger"
+                type="button"
+                [disabled]="!canManage"
+                (click)="deleteSelection(); closeContextMenu()"
+              >
+                <i class="fa-regular fa-trash-can"></i><span>Delete</span><kbd>Del</kbd>
+              </button>
+            } @else if (selection.selectedConnectionIds.size) {
+              <button
+                type="button"
+                [disabled]="!canManage"
+                (click)="addSelectedConnectionBend(); closeContextMenu()"
+              >
+                <i class="fa-solid fa-code-branch"></i><span>Add bend</span>
+              </button>
+              <button
+                type="button"
+                [disabled]="!canManage"
+                (click)="addSelectedConnectionLabel(); closeContextMenu()"
+              >
+                <i class="fa-solid fa-font"></i><span>Add label</span>
+              </button>
+              <button
+                class="danger"
+                type="button"
+                [disabled]="!canManage"
+                (click)="deleteSelection(); closeContextMenu()"
+              >
+                <i class="fa-regular fa-trash-can"></i><span>Delete</span><kbd>Del</kbd>
+              </button>
+            } @else {
+              <button
+                type="button"
+                [disabled]="!canManage"
+                (click)="addNodeAtContext('rectangle'); closeContextMenu()"
+              >
+                <span class="shape-icon rectangle"></span><span>Rectangle</span>
+              </button>
+              <button
+                type="button"
+                [disabled]="!canManage"
+                (click)="addNodeAtContext('text'); closeContextMenu()"
+              >
+                <i class="fa-solid fa-font"></i><span>Text</span>
+              </button>
+              <button
+                type="button"
+                [disabled]="!canManage"
+                (click)="addTableAtContext(); closeContextMenu()"
+              >
+                <i class="fa-solid fa-table-cells"></i><span>Table</span>
+              </button>
+            }
           </div>
-
-          <strong>Empty canvas</strong>
-          <span>Add a shape from the toolbar to begin your diagram.</span>
-        </div>
-      }
+        }
+        @if (!localNodes.length) {
+          <div class="canvas-empty">
+            <div><i class="fa-solid fa-diagram-project"></i></div>
+            <strong>Empty canvas</strong>
+            <span>Add a shape from the toolbar to begin your diagram.</span>
+          </div>
+        }
+      </div>
     </div>
   </div>
 </section>
