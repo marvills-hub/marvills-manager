@@ -308,7 +308,13 @@
             [style.height.px]="marquee.height"
           ></div>
         }
-        <svg class="connections-layer">
+        <svg
+          class="connections-layer"
+          [attr.width]="canvasWidth"
+          [attr.height]="canvasHeight"
+          [attr.viewBox]="'0 0 ' + canvasWidth + ' ' + canvasHeight"
+          preserveAspectRatio="none"
+        >
           <defs>
             <marker
               id="diagram-arrow"
@@ -437,7 +443,6 @@
             cdkDrag
             cdkDragBoundary=".diagram-canvas"
             [cdkDragDisabled]="!canManage || editingNodeId === node.id"
-            [cdkDragScale]="zoom"
             [cdkDragFreeDragPosition]="drag.getNodeDragPosition(node)"
             [class.selected]="selection.isNodeSelected(node.id)"
             [class.editing]="editingNodeId === node.id"
@@ -670,7 +675,13 @@
           </div>
         }
         @if (connectorToolActive && connectorDraftStart && connectorDraftEnd) {
-          <svg class="connector-draft-layer">
+          <svg
+            class="connector-draft-layer"
+            [attr.width]="canvasWidth"
+            [attr.height]="canvasHeight"
+            [attr.viewBox]="'0 0 ' + canvasWidth + ' ' + canvasHeight"
+            preserveAspectRatio="none"
+          >
             <g class="connector-draft">
               <line
                 class="connector-draft-line"
@@ -710,7 +721,13 @@
         }
         @if (selection.selectedConnectionIds.size === 1 && selection.selectedNodeIds.size === 0) {
           @if (selectedConnection; as selectedConnection) {
-            <svg class="connection-controls-layer">
+            <svg
+              class="connection-controls-layer"
+              [attr.width]="canvasWidth"
+              [attr.height]="canvasHeight"
+              [attr.viewBox]="'0 0 ' + canvasWidth + ' ' + canvasHeight"
+              preserveAspectRatio="none"
+            >
               <circle
                 class="connection-endpoint source"
                 [attr.cx]="

@@ -1098,26 +1098,12 @@ export class DiagramEditorComponent implements OnChanges {
     if (!event.ctrlKey) return;
     event.preventDefault();
     const step = event.deltaY < 0 ? 0.1 : -0.1;
-    const nextZoom = Math.min(2, Math.max(0.25, Number((this.zoom + step).toFixed(2))));
-    this.setZoom(nextZoom, event.clientX, event.clientY);
+    this.setZoom(this.zoom + step);
   }
-  private setZoom(nextZoom: number, anchorClientX?: number, anchorClientY?: number): void {
-    if (this.zoom === nextZoom) return;
-    const scroll = this.canvasScroll?.nativeElement;
-    if (!scroll) {
-      this.zoom = nextZoom;
-      return;
-    }
-    const rect = scroll.getBoundingClientRect();
-    const anchorX = anchorClientX == null ? rect.width / 2 : anchorClientX - rect.left;
-    const anchorY = anchorClientY == null ? rect.height / 2 : anchorClientY - rect.top;
-    const worldX = (scroll.scrollLeft + anchorX) / this.zoom;
-    const worldY = (scroll.scrollTop + anchorY) / this.zoom;
-    this.zoom = nextZoom;
-    requestAnimationFrame(() => {
-      scroll.scrollLeft = worldX * nextZoom - anchorX;
-      scroll.scrollTop = worldY * nextZoom - anchorY;
-    });
+  private setZoom(nextZoom: number): void {
+    const clampedZoom = Math.min(2, Math.max(0.25, Number(nextZoom.toFixed(2))));
+    if (this.zoom === clampedZoom) return;
+    this.zoom = clampedZoom;
   }
   private getDiagramContentBounds(): { width: number; height: number } {
     const padding = 240;

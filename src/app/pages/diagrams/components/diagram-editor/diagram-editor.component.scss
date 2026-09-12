@@ -314,7 +314,8 @@
 }
 
 .connections-layer,
-.connection-controls-layer {
+.connection-controls-layer,
+.connector-draft-layer {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -2694,7 +2695,9 @@
   flex: 0 0 auto;
   overflow: visible;
 }
+
 .diagram-world {
+  position: relative;
   transform-origin: 0 0;
   will-change: transform;
 }
