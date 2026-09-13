@@ -44,6 +44,11 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/tasks/tasks.component').then((m) => m.TasksComponent),
       },
       {
+        path: 'meetings',
+        loadComponent: () =>
+          import('./pages/meetings/meetings.component').then((m) => m.MeetingsComponent),
+      },
+      {
         path: 'ideas',
         loadComponent: () => import('./pages/ideas/ideas.component').then((m) => m.IdeasComponent),
       },
@@ -75,6 +80,23 @@ export const routes: Routes = [
         path: 'workspaces',
         loadComponent: () =>
           import('./pages/workspaces/workspaces.component').then((m) => m.WorkspacesComponent),
+      },
+      {
+        path: 'calendar',
+        loadComponent: () =>
+          import('./pages/calendar/calendar.component').then((m) => m.CalendarComponent),
+      },
+      {
+        path: 'time-tracking',
+        loadComponent: () =>
+          import('./pages/time-tracking/time-tracking.component').then(
+            (m) => m.TimeTrackingComponent,
+          ),
+      },
+      {
+        path: 'reports',
+        loadComponent: () =>
+          import('./pages/reports/reports.component').then((m) => m.ReportsComponent),
       },
       {
         path: 'profile',

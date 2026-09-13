@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { CdkDragEnd, CdkDragMove, DragDropModule } from '@angular/cdk/drag-drop';
+import { CdkDragEnd, CdkDragMove, CdkDragStart, DragDropModule } from '@angular/cdk/drag-drop';
 import {
+  AfterViewInit,
   Component,
   ElementRef,
   EventEmitter,
@@ -8,6 +9,7 @@ import {
   inject,
   Input,
   OnChanges,
+  OnDestroy,
   Output,
   SimpleChanges,
   ViewChild,
@@ -55,7 +57,7 @@ type ConnectionEndpoint = 'source' | 'target';
   templateUrl: './diagram-editor.component.html',
   styleUrl: './diagram-editor.component.scss',
 })
-export class DiagramEditorComponent implements OnChanges {
+export class DiagramEditorComponent implements OnChanges, AfterViewInit, OnDestroy {
   private readonly host = inject(ElementRef<HTMLElement>);
   readonly geometry = inject(DiagramGeometryService);
   readonly history = inject(DiagramHistoryService);
@@ -106,6 +108,7 @@ export class DiagramEditorComponent implements OnChanges {
   readonly baseCanvasHeight = 1600;
   canvasWidth = this.baseCanvasWidth;
   canvasHeight = this.baseCanvasHeight;
+  private resizeObserver?: ResizeObserver;
   connectorToolActive = false;
   connectorDraftStart: DiagramPoint | null = null;
   connectorDraftEnd: DiagramPoint | null = null;
@@ -120,6 +123,7 @@ export class DiagramEditorComponent implements OnChanges {
   reconnectingConnectionId: string | null = null;
   reconnectingEndpoint: ConnectionEndpoint | null = null;
   private readonly dragStartSnapshots: Record<string, DiagramHistorySnapshot> = {};
+  private readonly visualDragStartPositions: Record<string, DiagramPoint> = {};
   private suppressNextNodeClick = false;
   private suppressNextCanvasClick = false;
   private lastEmptyCanvasPointerDownAt = 0;
@@ -144,6 +148,16 @@ export class DiagramEditorComponent implements OnChanges {
   private panStartScrollTop = 0;
   private panMoved = false;
   private draggingConnectorDraftEndpoint: ConnectionEndpoint | null = null;
+  ngAfterViewInit(): void {
+    const scroller = this.canvasScroll?.nativeElement;
+    if (!scroller) return;
+    this.syncCanvasSize();
+    this.resizeObserver = new ResizeObserver(() => this.syncCanvasSize());
+    this.resizeObserver.observe(scroller);
+  }
+  ngOnDestroy(): void {
+    this.resizeObserver?.disconnect();
+  }
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['diagramId'] && this.diagramId) this.loadVersions();
     if (!changes['nodes'] && !changes['connections']) return;
@@ -158,6 +172,7 @@ export class DiagramEditorComponent implements OnChanges {
     const ownEmission = !!this.lastEmittedSignature && signature === this.lastEmittedSignature;
     this.localNodes = incoming.nodes;
     this.localConnections = incoming.connections;
+    this.syncCanvasSize();
     if (ownEmission) {
       this.lastEmittedSignature = '';
       return;
@@ -633,21 +648,28 @@ export class DiagramEditorComponent implements OnChanges {
     this.previewX = point.x;
     this.previewY = point.y;
   }
+  getNodeRenderPosition(node: DiagramNode): DiagramPoint {
+    if (this.drag.activeDragNodeId === node.id && this.visualDragStartPositions[node.id])
+      return this.visualDragStartPositions[node.id];
+    return this.drag.getNodeDragPosition(node);
+  }
+  nodeDragStarted(node: DiagramNode, _event: CdkDragStart): void {
+    if (!this.canManage || this.editingNodeId === node.id) return;
+    if (!this.selection.isNodeSelected(node.id)) {
+      this.selection.selectOnlyNode(node.id);
+      this.selection.clearConnectionSelection();
+    }
+    this.dragStartSnapshots[node.id] = this.snapshot();
+    this.visualDragStartPositions[node.id] = { ...this.drag.getNodeDragPosition(node) };
+    this.drag.startNodeDrag(
+      node.id,
+      this.localNodes,
+      this.selection.selectedNodeIds,
+      this.localConnections,
+    );
+  }
   nodeDragMoved(node: DiagramNode, event: CdkDragMove): void {
     if (!this.canManage || this.editingNodeId === node.id) return;
-    if (!this.drag.activeDragNodeId) {
-      if (!this.selection.isNodeSelected(node.id)) {
-        this.selection.selectOnlyNode(node.id);
-        this.selection.clearConnectionSelection();
-      }
-      this.dragStartSnapshots[node.id] = this.snapshot();
-      this.drag.startNodeDrag(
-        node.id,
-        this.localNodes,
-        this.selection.selectedNodeIds,
-        this.localConnections,
-      );
-    }
     if (this.drag.activeDragNodeId !== node.id) return;
     const worldDeltaX = event.distance.x / this.zoom;
     const worldDeltaY = event.distance.y / this.zoom;
@@ -660,8 +682,9 @@ export class DiagramEditorComponent implements OnChanges {
     );
     this.localNodes = [...this.localNodes];
     this.localConnections = [...this.localConnections];
+    this.syncCanvasSize();
   }
-  nodeDragEnded(node: DiagramNode, _event: CdkDragEnd): void {
+  nodeDragEnded(node: DiagramNode, event: CdkDragEnd): void {
     if (!this.canManage || this.editingNodeId === node.id) return;
     if (this.drag.activeDragNodeId && this.drag.activeDragNodeId !== node.id) return;
     const before = this.dragStartSnapshots[node.id] || this.snapshot();
@@ -684,7 +707,10 @@ export class DiagramEditorComponent implements OnChanges {
         : item,
     );
     delete this.dragStartSnapshots[node.id];
+    delete this.visualDragStartPositions[node.id];
+    event.source.reset();
     this.suppressNextNodeClick = true;
+    this.syncCanvasSize();
     this.commit(before);
   }
   duplicateNode(node: DiagramNode, event?: MouseEvent): void {
@@ -1104,6 +1130,25 @@ export class DiagramEditorComponent implements OnChanges {
     const clampedZoom = Math.min(2, Math.max(0.25, Number(nextZoom.toFixed(2))));
     if (this.zoom === clampedZoom) return;
     this.zoom = clampedZoom;
+    this.syncCanvasSize();
+  }
+  private syncCanvasSize(): void {
+    const bounds = this.getDiagramContentBounds();
+    const scroller = this.canvasScroll?.nativeElement;
+    const viewportWidth = scroller ? Math.ceil(scroller.clientWidth / this.zoom) : 0;
+    const viewportHeight = scroller ? Math.ceil(scroller.clientHeight / this.zoom) : 0;
+    this.canvasWidth = Math.max(
+      this.canvasWidth,
+      this.baseCanvasWidth,
+      bounds.width,
+      viewportWidth,
+    );
+    this.canvasHeight = Math.max(
+      this.canvasHeight,
+      this.baseCanvasHeight,
+      bounds.height,
+      viewportHeight,
+    );
   }
   private getDiagramContentBounds(): { width: number; height: number } {
     const padding = 240;
@@ -1603,6 +1648,7 @@ export class DiagramEditorComponent implements OnChanges {
     return this.history.capture(this.localNodes, this.localConnections);
   }
   private commit(before: DiagramHistorySnapshot): void {
+    this.syncCanvasSize();
     if (this.history.commit(before, this.localNodes, this.localConnections)) this.emitChange();
   }
   private mutateNodes(nodes: DiagramNode[]): void {

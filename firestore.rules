@@ -16,11 +16,15 @@ service cloud.firestore {
 
     function membershipExists(workspaceId) {
       return isSignedIn()
-        && exists(/databases/$(database)/documents/workspaceMembers/$(membershipId(workspaceId)));
+        && exists(
+          /databases/$(database)/documents/workspaceMembers/$(membershipId(workspaceId))
+        );
     }
 
     function membership(workspaceId) {
-      return get(/databases/$(database)/documents/workspaceMembers/$(membershipId(workspaceId)));
+      return get(
+        /databases/$(database)/documents/workspaceMembers/$(membershipId(workspaceId))
+      );
     }
 
     function isWorkspaceMember(workspaceId) {
@@ -30,8 +34,17 @@ service cloud.firestore {
 
     function isWorkspaceOwner(workspaceId) {
       return isSignedIn()
-        && exists(/databases/$(database)/documents/workspaces/$(workspaceId))
-        && get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == request.auth.uid;
+        && exists(
+          /databases/$(database)/documents/workspaces/$(workspaceId)
+        )
+        && get(
+          /databases/$(database)/documents/workspaces/$(workspaceId)
+        ).data.ownerId == request.auth.uid;
+    }
+
+    function hasWorkspaceAccess(workspaceId) {
+      return isWorkspaceOwner(workspaceId)
+        || isWorkspaceMember(workspaceId);
     }
 
     function isWorkspaceAdmin(workspaceId) {
@@ -94,11 +107,8 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if isSignedIn();
-
       allow create: if isCurrentUser(userId);
-
       allow update: if isCurrentUser(userId);
-
       allow delete: if false;
     }
 
@@ -213,8 +223,7 @@ service cloud.firestore {
     }
 
     match /projects/{projectId} {
-      allow read: if isWorkspaceOwner(resource.data.workspaceId)
-        || isWorkspaceMember(resource.data.workspaceId);
+      allow read: if hasWorkspaceAccess(resource.data.workspaceId);
 
       allow create: if isWorkspaceEditor(request.resource.data.workspaceId);
 
@@ -225,8 +234,7 @@ service cloud.firestore {
     }
 
     match /tasks/{taskId} {
-      allow read: if isWorkspaceOwner(resource.data.workspaceId)
-        || isWorkspaceMember(resource.data.workspaceId);
+      allow read: if hasWorkspaceAccess(resource.data.workspaceId);
 
       allow create: if isWorkspaceEditor(request.resource.data.workspaceId);
 
@@ -237,8 +245,7 @@ service cloud.firestore {
     }
 
     match /clients/{clientId} {
-      allow read: if isWorkspaceOwner(resource.data.workspaceId)
-        || isWorkspaceMember(resource.data.workspaceId);
+      allow read: if hasWorkspaceAccess(resource.data.workspaceId);
 
       allow create: if isWorkspaceEditor(request.resource.data.workspaceId);
 
@@ -249,8 +256,7 @@ service cloud.firestore {
     }
 
     match /taskStatuses/{statusId} {
-      allow read: if isWorkspaceOwner(resource.data.workspaceId)
-        || isWorkspaceMember(resource.data.workspaceId);
+      allow read: if hasWorkspaceAccess(resource.data.workspaceId);
 
       allow create: if isWorkspaceEditor(request.resource.data.workspaceId);
 
@@ -261,8 +267,7 @@ service cloud.firestore {
     }
 
     match /ideas/{ideaId} {
-      allow read: if isWorkspaceOwner(resource.data.workspaceId)
-        || isWorkspaceMember(resource.data.workspaceId);
+      allow read: if hasWorkspaceAccess(resource.data.workspaceId);
 
       allow create: if isWorkspaceEditor(request.resource.data.workspaceId);
 
@@ -274,8 +279,7 @@ service cloud.firestore {
     }
 
     match /boardNotes/{noteId} {
-      allow read: if isWorkspaceOwner(resource.data.workspaceId)
-        || isWorkspaceMember(resource.data.workspaceId);
+      allow read: if hasWorkspaceAccess(resource.data.workspaceId);
 
       allow create: if isWorkspaceEditor(request.resource.data.workspaceId);
 
@@ -287,8 +291,7 @@ service cloud.firestore {
     }
 
     match /diagrams/{diagramId} {
-      allow read: if isWorkspaceOwner(resource.data.workspaceId)
-        || isWorkspaceMember(resource.data.workspaceId);
+      allow read: if hasWorkspaceAccess(resource.data.workspaceId);
 
       allow create: if isWorkspaceEditor(request.resource.data.workspaceId);
 
@@ -297,6 +300,34 @@ service cloud.firestore {
         && request.resource.data.createdBy == resource.data.createdBy;
 
       allow delete: if isWorkspaceEditor(resource.data.workspaceId);
+    }
+
+    match /timeEntries/{entryId} {
+      allow read: if isSignedIn()
+        && resource.data.userId == request.auth.uid
+        && hasWorkspaceAccess(resource.data.workspaceId);
+
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && hasWorkspaceAccess(request.resource.data.workspaceId);
+
+      allow update: if isSignedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.workspaceId == resource.data.workspaceId
+        && hasWorkspaceAccess(resource.data.workspaceId);
+
+      allow delete: if isSignedIn()
+        && resource.data.userId == request.auth.uid
+        && hasWorkspaceAccess(resource.data.workspaceId);
+    }
+
+    match /meetings/{meetingId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     match /{document=**} {

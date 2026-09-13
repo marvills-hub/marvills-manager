@@ -1,0 +1,158 @@
+<section class="reports-page">
+  @if (loading) {
+    <div class="reports-loading">
+      <i class="fa-solid fa-spinner fa-spin"></i>
+      <span>Loading workspace reports...</span>
+    </div>
+  } @else {
+    <div class="report-stats">
+      <article>
+        <span>PROJECTS</span>
+        <strong>{{ totalProjects }}</strong>
+        <small>{{ completedProjects }} fully completed</small>
+      </article>
+      <article>
+        <span>TASK COMPLETION</span>
+        <strong>{{ completionRate }}%</strong>
+        <small>{{ completedTasks }} of {{ totalTasks }} tasks done</small>
+      </article>
+      <article [class.warning]="overdueTasks.length">
+        <span>OVERDUE</span>
+        <strong>{{ overdueTasks.length }}</strong>
+        <small>Open tasks past due date</small>
+      </article>
+      <article>
+        <span>MY TRACKED TIME</span>
+        <strong>{{ formatDuration(totalTrackedSeconds) }}</strong>
+        <small>Across this workspace</small>
+      </article>
+    </div>
+
+    <div class="reports-grid">
+      <section class="report-card status-card">
+        <div class="card-header">
+          <div>
+            <span>TASK DISTRIBUTION</span>
+            <strong>Status overview</strong>
+          </div>
+          <i class="fa-solid fa-chart-simple"></i>
+        </div>
+        <div class="status-list">
+          @for (status of statusReports; track status.label) {
+            <div class="status-row">
+              <div class="status-meta">
+                <span class="status-name"
+                  ><i [class]="status.className"></i>{{ status.label }}</span
+                >
+                <span>{{ status.count }} tasks · {{ status.percent }}%</span>
+              </div>
+              <div class="status-track">
+                <span [class]="status.className" [style.width.%]="status.percent"></span>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+
+      <section class="report-card time-card">
+        <div class="card-header">
+          <div>
+            <span>TIME BY PROJECT</span>
+            <strong>My tracked time</strong>
+          </div>
+          <i class="fa-regular fa-clock"></i>
+        </div>
+        <div class="time-bars">
+          @for (item of topProjectsByTime; track item.project.id) {
+            <div class="time-row">
+              <div class="time-meta">
+                <strong>{{ item.project.name }}</strong>
+                <span>{{ formatDuration(item.trackedSeconds) }}</span>
+              </div>
+              <div class="time-track">
+                <span [style.width.%]="(item.trackedSeconds / maxProjectSeconds) * 100"></span>
+              </div>
+            </div>
+          } @empty {
+            <div class="empty-block">
+              <i class="fa-regular fa-clock"></i>
+              <strong>No tracked time yet</strong>
+              <span>Time Tracking data will appear here.</span>
+            </div>
+          }
+        </div>
+      </section>
+
+      <section class="report-card project-card">
+        <div class="card-header">
+          <div>
+            <span>PROJECT PERFORMANCE</span>
+            <strong>Progress by project</strong>
+          </div>
+          <span class="count-badge">{{ projectReports.length }}</span>
+        </div>
+        <div class="project-table">
+          <div class="project-table-header">
+            <span>PROJECT</span>
+            <span>TASKS</span>
+            <span>OVERDUE</span>
+            <span>TIME</span>
+            <span>PROGRESS</span>
+          </div>
+          @for (item of projectReports; track item.project.id) {
+            <div class="project-table-row">
+              <div class="project-name">
+                <span>{{ item.project.name.charAt(0).toUpperCase() }}</span>
+                <div>
+                  <strong>{{ item.project.name }}</strong>
+                  <small>{{ item.project.status || 'Active' }}</small>
+                </div>
+              </div>
+              <span>{{ item.doneTasks }}/{{ item.totalTasks }}</span>
+              <span [class.danger]="item.overdueTasks">{{ item.overdueTasks }}</span>
+              <span>{{ formatDuration(item.trackedSeconds) }}</span>
+              <div class="progress-cell">
+                <div><span [style.width.%]="item.progress"></span></div>
+                <strong>{{ item.progress }}%</strong>
+              </div>
+            </div>
+          } @empty {
+            <div class="empty-block">
+              <i class="fa-regular fa-folder-open"></i>
+              <strong>No projects yet</strong>
+              <span>Create projects and tasks to generate reports.</span>
+            </div>
+          }
+        </div>
+      </section>
+
+      <section class="report-card overdue-card">
+        <div class="card-header">
+          <div>
+            <span>ATTENTION NEEDED</span>
+            <strong>Overdue tasks</strong>
+          </div>
+          <span class="count-badge danger-badge">{{ overdueTasks.length }}</span>
+        </div>
+        <div class="overdue-list">
+          @for (task of overdueTasks.slice(0, 8); track task.id) {
+            <div class="overdue-item">
+              <span class="overdue-icon"><i class="fa-solid fa-exclamation"></i></span>
+              <div>
+                <strong>{{ task.title }}</strong>
+                <span>{{ getProjectName(task.projectId) }}</span>
+              </div>
+              <small>{{ formatDate(task.dueDate) }}</small>
+            </div>
+          } @empty {
+            <div class="empty-block success-empty">
+              <i class="fa-regular fa-circle-check"></i>
+              <strong>No overdue tasks</strong>
+              <span>Your current task deadlines are clear.</span>
+            </div>
+          }
+        </div>
+      </section>
+    </div>
+  }
+</section>

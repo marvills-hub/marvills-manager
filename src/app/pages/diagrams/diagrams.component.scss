@@ -32,17 +32,10 @@
   border-bottom: 1px solid var(--border);
 
   > div {
-    span {
-      color: var(--primary);
-      font-size: 8px;
-      font-weight: 700;
-      letter-spacing: 1px;
-    }
-
     h3 {
       margin: 2px 0 0;
       color: var(--text-primary);
-      font-size: 14px;
+      font-size: 16px;
     }
   }
 
@@ -76,7 +69,6 @@
 }
 
 .diagram-item {
-  min-height: 62px;
   padding: 7px;
   display: flex;
   align-items: center;
@@ -104,10 +96,8 @@
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  border-radius: 6px;
   color: var(--primary);
-  background: var(--primary-soft);
-  font-size: 11px;
+  font-size: 22px;
 }
 
 .diagram-details {
@@ -115,19 +105,19 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 2px;
 
-  > strong {
+  > p {
     overflow: hidden;
     color: var(--text-primary);
-    font-size: 10px;
+    font-size: 14px;
     text-overflow: ellipsis;
     white-space: nowrap;
+    margin: 0px;
   }
 
   > span {
     color: var(--text-muted);
-    font-size: 8px;
+    font-size: 12px;
   }
 }
 

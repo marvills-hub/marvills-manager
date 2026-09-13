@@ -1,0 +1,162 @@
+<section class="time-page">
+  <div class="time-stats">
+    <article>
+      <span>TODAY</span>
+      <strong>{{ formatDuration(todaySeconds) }}</strong>
+      <small>Tracked today</small>
+    </article>
+    <article>
+      <span>THIS WEEK</span>
+      <strong>{{ formatDuration(weekSeconds) }}</strong>
+      <small>Tracked this week</small>
+    </article>
+    <article>
+      <span>ALL TIME</span>
+      <strong>{{ formatDuration(totalSeconds) }}</strong>
+      <small>Your workspace total</small>
+    </article>
+    <article [class.running]="activeEntry">
+      <span>STATUS</span>
+      <strong>{{ activeEntry ? 'Tracking' : 'Idle' }}</strong>
+      <small>{{ activeEntry ? getTaskName(activeEntry.taskId) : 'No active timer' }}</small>
+    </article>
+  </div>
+  <div class="time-layout">
+    <div class="tracker-panel">
+      <div class="panel-header">
+        <div>
+          <span>TIME TRACKER</span>
+          <strong>{{ activeEntry ? 'Timer running' : 'Start tracking work' }}</strong>
+        </div>
+        @if (activeEntry) {
+          <div class="live-indicator"><span></span>LIVE</div>
+        }
+      </div>
+      @if (activeEntry) {
+        <div class="active-timer">
+          <div class="timer-task">
+            <span class="timer-icon"><i class="fa-regular fa-clock"></i></span>
+            <div>
+              <small>{{ getProjectName(activeEntry.projectId) }}</small>
+              <strong>{{ getTaskName(activeEntry.taskId) }}</strong>
+              @if (activeEntry.description) {
+                <span>{{ activeEntry.description }}</span>
+              }
+            </div>
+          </div>
+          <div class="timer-value">{{ formatDuration(getEntrySeconds(activeEntry)) }}</div>
+          <button type="button" class="stop-button" [disabled]="saving" (click)="stopTimer()">
+            @if (saving) {
+              <i class="fa-solid fa-spinner fa-spin"></i>
+            } @else {
+              <i class="fa-solid fa-stop"></i>
+            }
+            Stop
+          </button>
+        </div>
+      } @else {
+        <div class="tracker-form">
+          <label>
+            <span>PROJECT</span>
+            <select [(ngModel)]="selectedProjectId" (ngModelChange)="projectChanged()">
+              <option value="">All Projects</option>
+              @for (project of projects; track project.id) {
+                <option [value]="project.id">{{ project.name }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            <span>TASK</span>
+            <select [(ngModel)]="selectedTaskId">
+              <option value="">Select Task</option>
+              @for (task of filteredTasks; track task.id) {
+                <option [value]="task.id">{{ task.title }}</option>
+              }
+            </select>
+          </label>
+          <label class="description-field">
+            <span>DESCRIPTION</span>
+            <input
+              type="text"
+              [(ngModel)]="description"
+              maxlength="140"
+              placeholder="What are you working on?"
+              (keyup.enter)="startTimer()"
+            />
+          </label>
+          <button
+            type="button"
+            class="start-button"
+            [disabled]="!selectedTaskId || saving"
+            (click)="startTimer()"
+          >
+            @if (saving) {
+              <i class="fa-solid fa-spinner fa-spin"></i>
+            } @else {
+              <i class="fa-solid fa-play"></i>
+            }
+            Start Timer
+          </button>
+        </div>
+      }
+    </div>
+    <div class="history-panel">
+      <div class="panel-header">
+        <div><span>RECENT ACTIVITY</span><strong>Time entries</strong></div>
+        <span class="entry-count">{{ entries.length }}</span>
+      </div>
+      @if (loading) {
+        <div class="empty-state">
+          <i class="fa-solid fa-spinner fa-spin"></i><span>Loading time entries...</span>
+        </div>
+      } @else {
+        <div class="entry-list">
+          @for (entry of entries; track entry.id) {
+            <div class="time-entry" [class.active]="!entry.endedAt">
+              <div class="entry-date">
+                <strong>{{ entry.startedAt.toDate() | date: 'd' }}</strong>
+                <small>{{ entry.startedAt.toDate() | date: 'MMM' }}</small>
+              </div>
+              <div class="entry-main">
+                <div class="entry-title">
+                  <strong>{{ getTaskName(entry.taskId) }}</strong>
+                  @if (!entry.endedAt) {
+                    <span>LIVE</span>
+                  }
+                </div>
+                <span>{{ getProjectName(entry.projectId) }}</span>
+                @if (entry.description) {
+                  <small>{{ entry.description }}</small>
+                }
+              </div>
+              <div class="entry-time">
+                <strong>{{ formatDuration(getEntrySeconds(entry)) }}</strong>
+                <small
+                  >{{ entry.startedAt.toDate() | date: 'h:mm a' }}
+                  @if (entry.endedAt) {
+                    – {{ entry.endedAt.toDate() | date: 'h:mm a' }}
+                  }
+                </small>
+              </div>
+              @if (entry.endedAt && entry.id) {
+                <button
+                  type="button"
+                  class="delete-entry"
+                  title="Delete entry"
+                  (click)="deleteEntry(entry)"
+                >
+                  <i class="fa-regular fa-trash-can"></i>
+                </button>
+              }
+            </div>
+          } @empty {
+            <div class="empty-state">
+              <i class="fa-regular fa-clock"></i><strong>No tracked time yet</strong
+              ><span>Select a task above and start your first timer.</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</section>

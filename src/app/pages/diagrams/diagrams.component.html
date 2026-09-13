@@ -30,22 +30,10 @@
             </div>
 
             <div class="diagram-details">
-              <strong>{{ diagram.name }}</strong>
-
+              <p>{{ diagram.name }}</p>
               <span>
                 {{ diagram.nodes.length || 0 }} nodes · {{ diagram.connections.length || 0 }} links
               </span>
-
-              <div class="diagram-meta">
-                <span>
-                  {{ getDiagramTypeLabel(diagram.type) }}
-                </span>
-
-                <span>
-                  <i class="fa-regular fa-folder"></i>
-                  {{ getProjectName(diagram.projectId) }}
-                </span>
-              </div>
             </div>
 
             @if (permissions.canManageContent()) {

@@ -1,0 +1,138 @@
+<section class="calendar-page">
+  <div class="calendar-toolbar">
+    <div class="calendar-navigation">
+      <button type="button" title="Previous month" (click)="previousMonth()">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+      <button type="button" class="today-button" (click)="goToday()">Today</button>
+      <button type="button" title="Next month" (click)="nextMonth()">
+        <i class="fa-solid fa-chevron-right"></i>
+      </button>
+      <strong>{{ monthLabel }}</strong>
+    </div>
+    <div class="calendar-filters">
+      <button type="button" [class.active]="selectedType === 'all'" (click)="setType('all')">
+        All
+      </button>
+      <button
+        type="button"
+        [class.active]="selectedType === 'project-start'"
+        (click)="setType('project-start')"
+      >
+        <span class="filter-dot project-start"></span>Starts
+      </button>
+      <button
+        type="button"
+        [class.active]="selectedType === 'project-due'"
+        (click)="setType('project-due')"
+      >
+        <span class="filter-dot project-due"></span>Project Due
+      </button>
+      <button
+        type="button"
+        [class.active]="selectedType === 'task-due'"
+        (click)="setType('task-due')"
+      >
+        <span class="filter-dot task-due"></span>Task Due
+      </button>
+    </div>
+  </div>
+  @if (loading) {
+    <div class="calendar-loading">
+      <i class="fa-solid fa-spinner fa-spin"></i><span>Loading workspace calendar...</span>
+    </div>
+  } @else {
+    <div class="calendar-layout">
+      <div class="calendar-panel">
+        <div class="weekday-row">
+          @for (weekday of weekdays; track weekday) {
+            <span>{{ weekday }}</span>
+          }
+        </div>
+        <div class="calendar-grid">
+          @for (day of days; track day.date.getTime()) {
+            <button
+              type="button"
+              class="calendar-day"
+              [class.outside]="!day.currentMonth"
+              [class.today]="day.today"
+              [class.selected]="day.date.getTime() === selectedDate.getTime()"
+              (click)="selectDay(day)"
+            >
+              <span class="day-number">{{ day.day }}</span>
+              <div class="day-events">
+                @for (item of day.items.slice(0, 3); track item.id) {
+                  <span
+                    class="calendar-event"
+                    [class]="item.type"
+                    [title]="getTypeLabel(item.type) + ': ' + item.title"
+                    (click)="$event.stopPropagation(); openItem(item)"
+                  >
+                    <i [class]="getTypeIcon(item.type)"></i>
+                    <span>{{ item.title }}</span>
+                  </span>
+                }
+                @if (day.items.length > 3) {
+                  <small>+{{ day.items.length - 3 }} more</small>
+                }
+              </div>
+            </button>
+          }
+        </div>
+      </div>
+      <aside class="calendar-side">
+        <div class="side-section">
+          <div class="side-heading">
+            <div>
+              <span>SELECTED DATE</span><strong>{{ selectedDateLabel }}</strong>
+            </div>
+            <span class="item-count">{{ selectedItems.length }}</span>
+          </div>
+          <div class="agenda-list">
+            @for (item of selectedItems; track item.id) {
+              <button type="button" class="agenda-item" (click)="openItem(item)">
+                <span class="agenda-icon" [class]="item.type"
+                  ><i [class]="getTypeIcon(item.type)"></i
+                ></span>
+                <span class="agenda-content">
+                  <small>{{ getTypeLabel(item.type) }}</small>
+                  <strong>{{ item.title }}</strong>
+                  @if (item.type === 'task-due') {
+                    <span>{{ getProjectName(item.projectId) }}</span>
+                  }
+                </span>
+                <i class="fa-solid fa-chevron-right"></i>
+              </button>
+            } @empty {
+              <div class="empty-agenda">
+                <i class="fa-regular fa-calendar"></i><strong>No events</strong
+                ><span>No project or task dates on this day.</span>
+              </div>
+            }
+          </div>
+        </div>
+        <div class="side-section upcoming-section">
+          <div class="side-heading">
+            <div><span>NEXT</span><strong>Upcoming</strong></div>
+          </div>
+          <div class="upcoming-list">
+            @for (item of upcomingItems; track item.id) {
+              <button type="button" (click)="openItem(item)">
+                <span class="upcoming-date"
+                  ><strong>{{ item.date | date: 'd' }}</strong
+                  ><small>{{ item.date | date: 'MMM' }}</small></span
+                >
+                <span
+                  ><strong>{{ item.title }}</strong
+                  ><small>{{ getTypeLabel(item.type) }}</small></span
+                >
+              </button>
+            } @empty {
+              <div class="empty-upcoming">No upcoming deadlines.</div>
+            }
+          </div>
+        </div>
+      </aside>
+    </div>
+  }
+</section>

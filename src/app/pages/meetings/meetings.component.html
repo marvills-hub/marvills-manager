@@ -1,0 +1,366 @@
+<section class="meetings-page">
+  <div class="meeting-tools">
+    <div class="meeting-tabs">
+      <button type="button" [class.active]="view === 'upcoming'" (click)="view = 'upcoming'">
+        Upcoming
+        <span>{{ upcomingCount }}</span>
+      </button>
+
+      <button type="button" [class.active]="view === 'past'" (click)="view = 'past'">Past</button>
+
+      <button type="button" [class.active]="view === 'all'" (click)="view = 'all'">All</button>
+    </div>
+
+    <button type="button" class="primary-button" (click)="openCreateModal()">
+      <i class="fa-solid fa-plus"></i>
+      New Meeting
+    </button>
+  </div>
+
+  <div class="meeting-stats">
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="fa-regular fa-calendar"></i>
+      </div>
+
+      <div class="stat-content">
+        <span>Upcoming</span>
+        <strong>{{ upcomingCount }}</strong>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="fa-solid fa-video"></i>
+      </div>
+
+      <div class="stat-content">
+        <span>Today</span>
+        <strong>{{ todayCount }}</strong>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="fa-solid fa-check"></i>
+      </div>
+
+      <div class="stat-content">
+        <span>Completed</span>
+        <strong>{{ completedCount }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="meeting-panel">
+    <div class="panel-header">
+      <strong>{{
+        view === 'upcoming'
+          ? 'Upcoming Meetings'
+          : view === 'past'
+            ? 'Past Meetings'
+            : 'All Meetings'
+      }}</strong>
+      <span>{{ visibleMeetings.length }} meetings</span>
+    </div>
+
+    <div class="meeting-content">
+      <div class="loading-state" *ngIf="loading">
+        <i class="fa-solid fa-spinner fa-spin"></i>
+        <span>Loading meetings...</span>
+      </div>
+
+      <div class="empty-state" *ngIf="!loading && !visibleMeetings.length">
+        <div class="empty-icon">
+          <i class="fa-solid fa-video"></i>
+        </div>
+
+        <h3>No meetings here yet</h3>
+
+        <p>Create a Marvills Meeting or add an external meeting link.</p>
+
+        <button type="button" class="primary-button" (click)="openCreateModal()">
+          <i class="fa-solid fa-plus"></i>
+          Create Meeting
+        </button>
+      </div>
+
+      <div class="meeting-list" *ngIf="!loading && visibleMeetings.length">
+        <article class="meeting-card" *ngFor="let meeting of visibleMeetings">
+          <div class="meeting-provider">
+            <i [class]="getProviderIcon(meeting.provider)"></i>
+          </div>
+
+          <div class="meeting-main">
+            <div class="meeting-title-row">
+              <h3>{{ meeting.title }}</h3>
+
+              <span class="status-badge" [class]="getStatusClass(meeting)">
+                {{ getDisplayStatus(meeting) }}
+              </span>
+            </div>
+
+            <div class="meeting-meta">
+              <span>
+                <i class="fa-regular fa-calendar"></i>
+                {{ formatMeetingDate(meeting) }}
+              </span>
+
+              <span>
+                <i class="fa-regular fa-clock"></i>
+                {{ formatMeetingTime(meeting) }}
+              </span>
+
+              <span>
+                <i class="fa-solid fa-video"></i>
+                {{ getProviderLabel(meeting.provider) }}
+              </span>
+            </div>
+
+            <p class="meeting-description" *ngIf="meeting.description">
+              {{ meeting.description }}
+            </p>
+
+            <div class="meeting-footer">
+              <button
+                type="button"
+                class="project-link"
+                [disabled]="!meeting.projectId"
+                (click)="openProject(meeting)"
+              >
+                <i class="fa-regular fa-folder"></i>
+                {{ getProjectName(meeting.projectId) }}
+              </button>
+
+              <span class="attendee-count" *ngIf="meeting.attendeeEmails?.length">
+                <i class="fa-solid fa-users"></i>
+                {{ meeting.attendeeEmails.length }}
+                {{ meeting.attendeeEmails.length === 1 ? 'attendee' : 'attendees' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="meeting-actions">
+            <button
+              type="button"
+              class="join-button"
+              *ngIf="meeting.status !== 'cancelled'"
+              (click)="joinMeeting(meeting)"
+            >
+              <i class="fa-solid fa-video"></i>
+              Join
+            </button>
+
+            <button
+              type="button"
+              class="icon-button"
+              title="Copy meeting link"
+              (click)="copyMeetingLink(meeting)"
+            >
+              <i class="fa-regular fa-copy"></i>
+            </button>
+
+            <button
+              type="button"
+              class="icon-button"
+              title="Edit meeting"
+              (click)="openEditModal(meeting)"
+            >
+              <i class="fa-regular fa-pen-to-square"></i>
+            </button>
+
+            <div class="meeting-menu">
+              <button type="button" class="icon-button">
+                <i class="fa-solid fa-ellipsis"></i>
+              </button>
+
+              <div class="meeting-menu-content">
+                <button
+                  type="button"
+                  *ngIf="meeting.status === 'scheduled'"
+                  (click)="completeMeeting(meeting)"
+                >
+                  <i class="fa-solid fa-check"></i>
+                  Mark Completed
+                </button>
+
+                <button
+                  type="button"
+                  *ngIf="meeting.status === 'scheduled'"
+                  (click)="cancelMeeting(meeting)"
+                >
+                  <i class="fa-solid fa-ban"></i>
+                  Cancel Meeting
+                </button>
+
+                <button type="button" class="danger" (click)="deleteMeeting(meeting)">
+                  <i class="fa-regular fa-trash-can"></i>
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" *ngIf="modalOpen" (click)="closeModal()">
+    <div class="meeting-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <span>
+            {{ editingMeeting ? 'EDIT MEETING' : 'NEW MEETING' }}
+          </span>
+
+          <h2>
+            {{ editingMeeting ? 'Update Meeting' : 'Schedule Meeting' }}
+          </h2>
+        </div>
+
+        <button type="button" class="close-button" [disabled]="saving" (click)="closeModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="modal-content">
+        <div class="form-grid">
+          <label class="form-field full">
+            <span>Meeting Title</span>
+
+            <input type="text" [(ngModel)]="title" placeholder="e.g. Website Redesign Review" />
+          </label>
+
+          <label class="form-field full">
+            <span>Project</span>
+
+            <select [(ngModel)]="projectId">
+              <option value="">No Project</option>
+
+              <option *ngFor="let project of projects" [value]="project.id">
+                {{ project.name }}
+              </option>
+            </select>
+          </label>
+
+          <label class="form-field">
+            <span>Start</span>
+
+            <input type="datetime-local" [(ngModel)]="startAt" />
+          </label>
+
+          <label class="form-field">
+            <span>End</span>
+
+            <input type="datetime-local" [(ngModel)]="endAt" />
+          </label>
+        </div>
+
+        <div class="provider-section">
+          <div class="section-label">Meeting Provider</div>
+
+          <div class="provider-grid">
+            <button
+              type="button"
+              class="provider-card"
+              *ngFor="let item of providers"
+              [class.active]="provider === item.value"
+              (click)="provider = item.value; providerChanged()"
+            >
+              <div class="provider-icon">
+                <i [class]="item.icon"></i>
+              </div>
+
+              <div class="provider-info">
+                <strong>{{ item.label }}</strong>
+                <span>{{ item.description }}</span>
+              </div>
+
+              <i class="fa-solid fa-circle-check selected-icon" *ngIf="provider === item.value"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="jitsi-info" *ngIf="provider === 'jitsi'">
+          <div class="jitsi-icon">
+            <i class="fa-solid fa-video"></i>
+          </div>
+
+          <div>
+            <strong>Marvills Meeting</strong>
+            <p>A unique Jitsi room will automatically be generated when the meeting is created.</p>
+          </div>
+        </div>
+
+        <label class="form-field full" *ngIf="provider !== 'jitsi'">
+          <span>Meeting Link</span>
+
+          <div class="input-with-icon">
+            <i class="fa-solid fa-link"></i>
+
+            <input type="url" [(ngModel)]="meetingUrl" placeholder="https://..." />
+          </div>
+        </label>
+
+        <label class="form-field full">
+          <span>Attendees</span>
+
+          <input
+            type="text"
+            [(ngModel)]="attendeeEmails"
+            placeholder="email@example.com, another@example.com"
+          />
+
+          <small> Separate multiple email addresses with commas. </small>
+        </label>
+
+        <label class="form-field full">
+          <span>Description</span>
+
+          <textarea
+            rows="3"
+            [(ngModel)]="description"
+            placeholder="What is this meeting about?"
+          ></textarea>
+        </label>
+
+        <label class="form-field full">
+          <span>Agenda</span>
+
+          <textarea
+            rows="4"
+            [(ngModel)]="agenda"
+            placeholder="Add discussion points, goals, or topics..."
+          ></textarea>
+        </label>
+
+        <label class="form-field full" *ngIf="editingMeeting">
+          <span>Status</span>
+
+          <select [(ngModel)]="status">
+            <option value="scheduled">Scheduled</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="secondary-button" [disabled]="saving" (click)="closeModal()">
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          class="primary-button"
+          [disabled]="saving || !title.trim()"
+          (click)="saveMeeting()"
+        >
+          <i [class]="saving ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-calendar-plus'"></i>
+
+          {{ saving ? 'Saving...' : editingMeeting ? 'Save Changes' : 'Create Meeting' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</section>

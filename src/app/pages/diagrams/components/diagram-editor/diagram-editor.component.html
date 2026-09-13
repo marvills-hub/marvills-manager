@@ -443,7 +443,9 @@
             cdkDrag
             cdkDragBoundary=".diagram-canvas"
             [cdkDragDisabled]="!canManage || editingNodeId === node.id"
-            [cdkDragFreeDragPosition]="drag.getNodeDragPosition(node)"
+            [cdkDragScale]="zoom"
+            [style.left.px]="getNodeRenderPosition(node).x"
+            [style.top.px]="getNodeRenderPosition(node).y"
             [class.selected]="selection.isNodeSelected(node.id)"
             [class.editing]="editingNodeId === node.id"
             [class.connection-source]="connectionSourceId === node.id"
@@ -473,6 +475,7 @@
             [style.z-index]="node.zIndex"
             (click)="selectNode(node, $event)"
             (contextmenu)="openNodeContextMenu(node, $event)"
+            (cdkDragStarted)="nodeDragStarted(node, $event)"
             (cdkDragMoved)="nodeDragMoved(node, $event)"
             (cdkDragEnded)="nodeDragEnded(node, $event)"
           >
